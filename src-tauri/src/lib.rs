@@ -12,117 +12,94 @@ mod utils;
 use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
 use tauri::Manager;
-use tauri_plugin_sql::{Migration, MigrationKind};
 
 // Re-export only what's needed externally
 pub use types::DEFAULT_QUICK_PANE_SHORTCUT;
 
-fn migrations() -> Vec<Migration> {
-    vec![
-        Migration {
-            version: 1,
-            description: "create_jobs_table",
-            sql: "CREATE TABLE jobs (
-                id TEXT PRIMARY KEY,
-                company TEXT NOT NULL,
-                role TEXT NOT NULL,
-                ats TEXT NOT NULL,
-                apply_url TEXT NOT NULL,
-                job_posting_id TEXT,
-                board_token TEXT,
-                status TEXT NOT NULL DEFAULT 'saved',
-                tier TEXT NOT NULL DEFAULT 'tier1',
-                source TEXT DEFAULT 'Company careers page',
-                resume_path TEXT,
-                cover_letter_path TEXT,
-                custom_fields TEXT DEFAULT '{}',
-                notes TEXT DEFAULT '',
-                applied_at TEXT,
-                follow_up_date TEXT,
-                response_date TEXT,
-                salary_range TEXT,
-                location TEXT,
-                jd_url TEXT,
-                created_at TEXT NOT NULL DEFAULT (datetime('now')),
-                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-            );
-            CREATE INDEX idx_jobs_status ON jobs(status);
-            CREATE INDEX idx_jobs_company ON jobs(company);",
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 2,
-            description: "create_submissions_table",
-            sql: "CREATE TABLE submissions (
-                id TEXT PRIMARY KEY,
-                job_id TEXT NOT NULL REFERENCES jobs(id),
-                adapter TEXT NOT NULL,
-                status TEXT NOT NULL,
-                resume_uploaded INTEGER NOT NULL DEFAULT 0,
-                cover_letter_uploaded INTEGER NOT NULL DEFAULT 0,
-                fields_filled TEXT DEFAULT '[]',
-                fields_skipped TEXT DEFAULT '[]',
-                error TEXT,
-                response_data TEXT,
-                duration_seconds REAL,
-                created_at TEXT NOT NULL DEFAULT (datetime('now'))
-            );
-            CREATE INDEX idx_submissions_job_id ON submissions(job_id);",
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 3,
-            description: "create_followups_table",
-            sql: "CREATE TABLE followups (
-                id TEXT PRIMARY KEY,
-                job_id TEXT NOT NULL REFERENCES jobs(id),
-                draft_subject TEXT NOT NULL,
-                draft_body TEXT NOT NULL,
-                status TEXT NOT NULL DEFAULT 'draft',
-                scheduled_date TEXT NOT NULL,
-                sent_at TEXT,
-                gmail_message_id TEXT,
-                created_at TEXT NOT NULL DEFAULT (datetime('now'))
-            );
-            CREATE INDEX idx_followups_job_id ON followups(job_id);
-            CREATE INDEX idx_followups_status_date ON followups(status, scheduled_date);",
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 4,
-            description: "create_notes_table",
-            sql: "CREATE TABLE notes (
-                id TEXT PRIMARY KEY,
-                job_id TEXT NOT NULL REFERENCES jobs(id),
-                note_type TEXT NOT NULL,
-                title TEXT NOT NULL,
-                content TEXT NOT NULL,
-                created_at TEXT NOT NULL DEFAULT (datetime('now')),
-                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-            );",
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 5,
-            description: "create_profile_table",
-            sql: "CREATE TABLE profile (
-                id INTEGER PRIMARY KEY CHECK (id = 1),
-                first_name TEXT NOT NULL,
-                last_name TEXT NOT NULL,
-                email TEXT NOT NULL,
-                phone TEXT NOT NULL,
-                linkedin_url TEXT NOT NULL,
-                location TEXT NOT NULL DEFAULT 'San Francisco, CA',
-                authorized_to_work INTEGER NOT NULL DEFAULT 1,
-                requires_sponsorship INTEGER NOT NULL DEFAULT 0,
-                preferred_name TEXT,
-                base_resume_path TEXT,
-                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-            );",
-            kind: MigrationKind::Up,
-        },
-    ]
-}
+const MIGRATIONS: &[&str] = &[
+    // Migration 1: jobs table
+    "CREATE TABLE IF NOT EXISTS jobs (
+        id TEXT PRIMARY KEY,
+        company TEXT NOT NULL,
+        role TEXT NOT NULL,
+        ats TEXT NOT NULL,
+        apply_url TEXT NOT NULL,
+        job_posting_id TEXT,
+        board_token TEXT,
+        status TEXT NOT NULL DEFAULT 'saved',
+        tier TEXT NOT NULL DEFAULT 'tier1',
+        source TEXT DEFAULT 'Company careers page',
+        resume_path TEXT,
+        cover_letter_path TEXT,
+        custom_fields TEXT DEFAULT '{}',
+        notes TEXT DEFAULT '',
+        applied_at TEXT,
+        follow_up_date TEXT,
+        response_date TEXT,
+        salary_range TEXT,
+        location TEXT,
+        jd_url TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );",
+    "CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);",
+    "CREATE INDEX IF NOT EXISTS idx_jobs_company ON jobs(company);",
+    // Migration 2: submissions table
+    "CREATE TABLE IF NOT EXISTS submissions (
+        id TEXT PRIMARY KEY,
+        job_id TEXT NOT NULL REFERENCES jobs(id),
+        adapter TEXT NOT NULL,
+        status TEXT NOT NULL,
+        resume_uploaded INTEGER NOT NULL DEFAULT 0,
+        cover_letter_uploaded INTEGER NOT NULL DEFAULT 0,
+        fields_filled TEXT DEFAULT '[]',
+        fields_skipped TEXT DEFAULT '[]',
+        error TEXT,
+        response_data TEXT,
+        duration_seconds REAL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );",
+    "CREATE INDEX IF NOT EXISTS idx_submissions_job_id ON submissions(job_id);",
+    // Migration 3: followups table
+    "CREATE TABLE IF NOT EXISTS followups (
+        id TEXT PRIMARY KEY,
+        job_id TEXT NOT NULL REFERENCES jobs(id),
+        draft_subject TEXT NOT NULL,
+        draft_body TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'draft',
+        scheduled_date TEXT NOT NULL,
+        sent_at TEXT,
+        gmail_message_id TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );",
+    "CREATE INDEX IF NOT EXISTS idx_followups_job_id ON followups(job_id);",
+    "CREATE INDEX IF NOT EXISTS idx_followups_status_date ON followups(status, scheduled_date);",
+    // Migration 4: notes table
+    "CREATE TABLE IF NOT EXISTS notes (
+        id TEXT PRIMARY KEY,
+        job_id TEXT NOT NULL REFERENCES jobs(id),
+        note_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );",
+    // Migration 5: profile table
+    "CREATE TABLE IF NOT EXISTS profile (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        linkedin_url TEXT NOT NULL,
+        location TEXT NOT NULL DEFAULT 'San Francisco, CA',
+        authorized_to_work INTEGER NOT NULL DEFAULT 1,
+        requires_sponsorship INTEGER NOT NULL DEFAULT 0,
+        preferred_name TEXT,
+        base_resume_path TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );",
+];
 
 /// Application entry point. Sets up all plugins and initializes the app.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -198,12 +175,6 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_os::init())
-        // SQL plugin handles migrations on the DB file
-        .plugin(
-            tauri_plugin_sql::Builder::default()
-                .add_migrations("sqlite:jcc.db", migrations())
-                .build(),
-        )
         .setup(|app| {
             log::info!("Application starting up");
             log::debug!(
@@ -241,6 +212,15 @@ pub fn run() {
                     .execute(&pool)
                     .await
                     .map_err(|e| format!("Failed to enable foreign keys: {e}"))?;
+
+                // Run migrations
+                for sql in MIGRATIONS {
+                    sqlx::query(sql)
+                        .execute(&pool)
+                        .await
+                        .map_err(|e| format!("Migration failed: {e}"))?;
+                }
+                log::info!("Database migrations complete");
 
                 Ok::<SqlitePool, String>(pool)
             })?;

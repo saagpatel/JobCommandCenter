@@ -36,7 +36,6 @@ log = "0.4"
 regex = "1"
 
 # Database
-tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio"] }
 
 # Data types
