@@ -29,6 +29,8 @@ export type {
   JsonValue,
   Profile,
   RecoveryError,
+  SidecarState,
+  SidecarStatus,
   UpdateJobInput,
   UpsertProfileInput,
 } from './bindings'

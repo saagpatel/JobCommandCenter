@@ -9,9 +9,17 @@ mod commands;
 mod types;
 mod utils;
 
+use std::sync::Arc;
+
 use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
-use tauri::Manager;
+use tauri::{Manager, RunEvent};
+use tokio::sync::Mutex;
+
+use commands::sidecar::{
+    spawn_health_monitor, start_sidecar_internal, stop_sidecar_internal, SharedSidecarManager,
+    SidecarManager,
+};
 
 // Re-export only what's needed externally
 pub use types::DEFAULT_QUICK_PANE_SHORTCUT;
@@ -228,6 +236,11 @@ pub fn run() {
             app.manage(pool);
             log::info!("SQLite pool initialized at {}", db_path.display());
 
+            // Initialize sidecar manager
+            let sidecar_manager: SharedSidecarManager =
+                Arc::new(Mutex::new(SidecarManager::default()));
+            app.manage(sidecar_manager);
+
             // Set up global shortcut plugin
             #[cfg(desktop)]
             {
@@ -258,6 +271,34 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(builder.invoke_handler())
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            if let RunEvent::Ready = event {
+                // Auto-start sidecar and health monitor
+                let handle = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    match start_sidecar_internal(&handle).await {
+                        Ok(status) => {
+                            log::info!("Sidecar auto-start: {:?}", status.state);
+                        }
+                        Err(e) => {
+                            log::warn!("Sidecar auto-start failed: {e}");
+                        }
+                    }
+                });
+                spawn_health_monitor(app.clone());
+            }
+
+            if let RunEvent::ExitRequested { .. } = event {
+                // Gracefully stop sidecar on app exit
+                let handle = app.clone();
+                tauri::async_runtime::block_on(async move {
+                    match stop_sidecar_internal(&handle).await {
+                        Ok(_) => log::info!("Sidecar stopped on exit"),
+                        Err(e) => log::warn!("Failed to stop sidecar on exit: {e}"),
+                    }
+                });
+            }
+        });
 }

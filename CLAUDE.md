@@ -161,8 +161,8 @@ job-command-center/
 - [x] Define SQLite schema (jobs, submissions, followups, notes) (Session 1)
 - [x] Implement Rust CRUD commands for jobs table (Session 1)
 - [x] Build Tracker Board view (Kanban: Saved → Applied → Interview → Offer → Rejected) (Session 2)
-- [ ] Set up Python sidecar project structure with FastAPI
-- [ ] Implement sidecar spawn/health-check from Rust backend
+- [x] Set up Python sidecar project structure with FastAPI (Session 3)
+- [x] Implement sidecar spawn/health-check from Rust backend (Session 3)
 - [ ] Create applicant profile settings page
 
 ## Key Decisions Made

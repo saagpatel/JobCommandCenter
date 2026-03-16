@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+import type { SidecarState } from '@/lib/tauri-bindings'
 
 type ActiveView =
   | 'tracker'
@@ -17,6 +18,7 @@ interface UIState {
   lastQuickPaneEntry: string | null
   activeView: ActiveView
   selectedJobId: string | null
+  sidecarStatus: SidecarState
 
   toggleLeftSidebar: () => void
   setLeftSidebarVisible: (visible: boolean) => void
@@ -29,6 +31,7 @@ interface UIState {
   setLastQuickPaneEntry: (text: string) => void
   setActiveView: (view: ActiveView) => void
   setSelectedJobId: (id: string | null) => void
+  setSidecarStatus: (status: SidecarState) => void
 }
 
 export const useUIStore = create<UIState>()(
@@ -41,6 +44,7 @@ export const useUIStore = create<UIState>()(
       lastQuickPaneEntry: null,
       activeView: 'tracker',
       selectedJobId: null,
+      sidecarStatus: 'Stopped' as SidecarState,
 
       toggleLeftSidebar: () =>
         set(
@@ -98,6 +102,9 @@ export const useUIStore = create<UIState>()(
 
       setSelectedJobId: id =>
         set({ selectedJobId: id }, undefined, 'setSelectedJobId'),
+
+      setSidecarStatus: status =>
+        set({ sidecarStatus: status }, undefined, 'setSidecarStatus'),
     }),
     {
       name: 'ui-store',

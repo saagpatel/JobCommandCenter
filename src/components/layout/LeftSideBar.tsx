@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/ui-store'
+import { SidecarStatusIndicator } from './SidecarStatusIndicator'
 import {
   Briefcase,
   Send,
@@ -49,6 +50,9 @@ export function LeftSideBar({ children, className }: LeftSideBarProps) {
         ))}
       </div>
       {children}
+      <div className="mt-auto border-t p-2">
+        <SidecarStatusIndicator />
+      </div>
     </div>
   )
 }

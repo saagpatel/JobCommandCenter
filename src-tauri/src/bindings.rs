@@ -1,7 +1,9 @@
 use tauri_specta::{collect_commands, Builder};
 
 pub fn generate_bindings() -> Builder<tauri::Wry> {
-    use crate::commands::{jobs, notifications, preferences, profile, quick_pane, recovery};
+    use crate::commands::{
+        jobs, notifications, preferences, profile, quick_pane, recovery, sidecar,
+    };
 
     Builder::<tauri::Wry>::new().commands(collect_commands![
         preferences::load_preferences,
@@ -22,6 +24,10 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         jobs::delete_job,
         profile::get_profile,
         profile::upsert_profile,
+        sidecar::start_sidecar,
+        sidecar::stop_sidecar,
+        sidecar::check_sidecar_health,
+        sidecar::get_sidecar_status,
     ])
 }
 

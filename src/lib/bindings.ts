@@ -187,6 +187,38 @@ async upsertProfile(input: UpsertProfileInput) : Promise<Result<Profile, string>
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async startSidecar() : Promise<Result<SidecarStatus, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("start_sidecar") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async stopSidecar() : Promise<Result<SidecarStatus, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("stop_sidecar") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async checkSidecarHealth() : Promise<Result<SidecarStatus, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("check_sidecar_health") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getSidecarStatus() : Promise<Result<SidecarStatus, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_sidecar_status") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -243,6 +275,8 @@ export type RecoveryError =
  * JSON serialization/deserialization error
  */
 { type: "ParseError"; message: string }
+export type SidecarState = "Starting" | "Healthy" | "Unhealthy" | "Stopped" | "Failed"
+export type SidecarStatus = { state: SidecarState; pid: number | null; restart_count: number; uptime_seconds: number | null }
 export type UpdateJobInput = { company: string | null; role: string | null; ats: string | null; apply_url: string | null; status: string | null; tier: string | null; job_posting_id: string | null; board_token: string | null; source: string | null; resume_path: string | null; cover_letter_path: string | null; custom_fields: string | null; notes: string | null; applied_at: string | null; follow_up_date: string | null; response_date: string | null; salary_range: string | null; location: string | null; jd_url: string | null }
 export type UpsertProfileInput = { first_name: string; last_name: string; email: string; phone: string; linkedin_url: string; location: string | null; authorized_to_work: boolean | null; requires_sponsorship: boolean | null; preferred_name: string | null; base_resume_path: string | null }
 

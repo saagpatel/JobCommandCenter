@@ -25,3 +25,11 @@ jscpd-report
 *.njsproj
 *.sln
 *.sw?
+
+# Python sidecar
+sidecar/.venv/
+sidecar/dist/
+sidecar/build/
+sidecar/*.egg-info/
+__pycache__/
+*.pyc

@@ -2281,6 +2281,7 @@ dependencies = [
  "chrono",
  "log",
  "regex",
+ "reqwest",
  "serde",
  "serde_json",
  "specta",

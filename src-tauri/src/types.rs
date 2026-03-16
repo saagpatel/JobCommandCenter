@@ -188,6 +188,33 @@ pub struct UpsertProfileInput {
 }
 
 // ============================================================================
+// Sidecar
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq)]
+pub enum SidecarState {
+    Starting,
+    Healthy,
+    Unhealthy,
+    Stopped,
+    Failed,
+}
+
+impl Default for SidecarState {
+    fn default() -> Self {
+        Self::Stopped
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SidecarStatus {
+    pub state: SidecarState,
+    pub pid: Option<u32>,
+    pub restart_count: u32,
+    pub uptime_seconds: Option<f64>,
+}
+
+// ============================================================================
 // Validation Functions
 // ============================================================================
 
