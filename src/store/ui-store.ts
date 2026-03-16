@@ -1,12 +1,22 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
+type ActiveView =
+  | 'tracker'
+  | 'submit'
+  | 'followups'
+  | 'interview'
+  | 'analytics'
+  | 'settings'
+
 interface UIState {
   leftSidebarVisible: boolean
   rightSidebarVisible: boolean
   commandPaletteOpen: boolean
   preferencesOpen: boolean
   lastQuickPaneEntry: string | null
+  activeView: ActiveView
+  selectedJobId: string | null
 
   toggleLeftSidebar: () => void
   setLeftSidebarVisible: (visible: boolean) => void
@@ -17,6 +27,8 @@ interface UIState {
   togglePreferences: () => void
   setPreferencesOpen: (open: boolean) => void
   setLastQuickPaneEntry: (text: string) => void
+  setActiveView: (view: ActiveView) => void
+  setSelectedJobId: (id: string | null) => void
 }
 
 export const useUIStore = create<UIState>()(
@@ -27,6 +39,8 @@ export const useUIStore = create<UIState>()(
       commandPaletteOpen: false,
       preferencesOpen: false,
       lastQuickPaneEntry: null,
+      activeView: 'tracker',
+      selectedJobId: null,
 
       toggleLeftSidebar: () =>
         set(
@@ -78,6 +92,12 @@ export const useUIStore = create<UIState>()(
 
       setLastQuickPaneEntry: text =>
         set({ lastQuickPaneEntry: text }, undefined, 'setLastQuickPaneEntry'),
+
+      setActiveView: view =>
+        set({ activeView: view }, undefined, 'setActiveView'),
+
+      setSelectedJobId: id =>
+        set({ selectedJobId: id }, undefined, 'setSelectedJobId'),
     }),
     {
       name: 'ui-store',
