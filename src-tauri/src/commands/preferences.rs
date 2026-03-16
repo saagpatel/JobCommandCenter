@@ -5,7 +5,7 @@
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
-use crate::types::{validate_string_input, validate_theme, AppPreferences};
+use crate::types::{validate_theme, AppPreferences};
 
 /// Gets the path to the preferences file.
 fn get_preferences_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -35,20 +35,6 @@ pub fn load_quick_pane_shortcut(app: &AppHandle) -> Option<String> {
         .inspect_err(|e| log::warn!("Failed to parse preferences: {e}"))
         .ok()?;
     prefs.quick_pane_shortcut
-}
-
-/// Simple greeting command for demonstration purposes.
-#[tauri::command]
-#[specta::specta]
-pub fn greet(name: &str) -> Result<String, String> {
-    // Input validation
-    validate_string_input(name, 100, "Name").map_err(|e| {
-        log::warn!("Invalid greet input: {e}");
-        e
-    })?;
-
-    log::info!("Greeting user: {name}");
-    Ok(format!("Hello, {name}! You've been greeted from Rust!"))
 }
 
 /// Loads user preferences from disk.

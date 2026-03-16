@@ -1,10 +1,9 @@
 use tauri_specta::{collect_commands, Builder};
 
 pub fn generate_bindings() -> Builder<tauri::Wry> {
-    use crate::commands::{notifications, preferences, quick_pane, recovery};
+    use crate::commands::{jobs, notifications, preferences, profile, quick_pane, recovery};
 
     Builder::<tauri::Wry>::new().commands(collect_commands![
-        preferences::greet,
         preferences::load_preferences,
         preferences::save_preferences,
         notifications::send_native_notification,
@@ -16,6 +15,13 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         quick_pane::toggle_quick_pane,
         quick_pane::get_default_quick_pane_shortcut,
         quick_pane::update_quick_pane_shortcut,
+        jobs::list_jobs,
+        jobs::get_job,
+        jobs::create_job,
+        jobs::update_job,
+        jobs::delete_job,
+        profile::get_profile,
+        profile::upsert_profile,
     ])
 }
 

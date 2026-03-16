@@ -1,5 +1,4 @@
 import { cn } from '@/lib/utils'
-import { useUIStore } from '@/store/ui-store'
 
 interface MainWindowContentProps {
   children?: React.ReactNode
@@ -10,17 +9,16 @@ export function MainWindowContent({
   children,
   className,
 }: MainWindowContentProps) {
-  const lastQuickPaneEntry = useUIStore(state => state.lastQuickPaneEntry)
-
   return (
     <div className={cn('flex h-full flex-col bg-background', className)}>
       {children || (
-        <div className="flex flex-1 flex-col items-center justify-center">
-          <h1 className="text-4xl font-bold text-foreground">
-            {lastQuickPaneEntry
-              ? `Last entry: ${lastQuickPaneEntry}`
-              : 'Hello World'}
+        <div className="flex flex-1 flex-col items-center justify-center gap-4">
+          <h1 className="text-4xl font-bold tracking-tight text-foreground">
+            Job Command Center
           </h1>
+          <p className="text-muted-foreground">
+            Select a view from the sidebar to get started.
+          </p>
         </div>
       )}
     </div>

@@ -9,17 +9,6 @@
 
 export const commands = {
 /**
- * Simple greeting command for demonstration purposes.
- */
-async greet(name: string) : Promise<Result<string, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("greet", { name }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
  * Loads user preferences from disk.
  * Returns default preferences if the file doesn't exist.
  */
@@ -142,6 +131,62 @@ async updateQuickPaneShortcut(shortcut: string | null) : Promise<Result<null, st
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async listJobs(status: string | null) : Promise<Result<Job[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_jobs", { status }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getJob(id: string) : Promise<Result<Job | null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_job", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async createJob(input: CreateJobInput) : Promise<Result<Job, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("create_job", { input }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async updateJob(id: string, input: UpdateJobInput) : Promise<Result<Job, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_job", { id, input }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async deleteJob(id: string) : Promise<Result<boolean, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_job", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getProfile() : Promise<Result<Profile | null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_profile") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async upsertProfile(input: UpsertProfileInput) : Promise<Result<Profile, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("upsert_profile", { input }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -170,7 +215,10 @@ quick_pane_shortcut: string | null;
  * If None, uses system locale detection
  */
 language: string | null }
+export type CreateJobInput = { company: string; role: string; ats: string; apply_url: string; status: string | null; tier: string | null; job_posting_id: string | null; board_token: string | null; source: string | null; resume_path: string | null; cover_letter_path: string | null; custom_fields: string | null; notes: string | null; salary_range: string | null; location: string | null; jd_url: string | null }
+export type Job = { id: string; company: string; role: string; ats: string; apply_url: string; job_posting_id: string | null; board_token: string | null; status: string; tier: string; source: string | null; resume_path: string | null; cover_letter_path: string | null; custom_fields: string | null; notes: string | null; applied_at: string | null; follow_up_date: string | null; response_date: string | null; salary_range: string | null; location: string | null; jd_url: string | null; created_at: string; updated_at: string }
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
+export type Profile = { id: number; first_name: string; last_name: string; email: string; phone: string; linkedin_url: string; location: string; authorized_to_work: boolean; requires_sponsorship: boolean; preferred_name: string | null; base_resume_path: string | null; updated_at: string }
 /**
  * Error types for recovery operations (typed for frontend matching)
  */
@@ -195,6 +243,8 @@ export type RecoveryError =
  * JSON serialization/deserialization error
  */
 { type: "ParseError"; message: string }
+export type UpdateJobInput = { company: string | null; role: string | null; ats: string | null; apply_url: string | null; status: string | null; tier: string | null; job_posting_id: string | null; board_token: string | null; source: string | null; resume_path: string | null; cover_letter_path: string | null; custom_fields: string | null; notes: string | null; applied_at: string | null; follow_up_date: string | null; response_date: string | null; salary_range: string | null; location: string | null; jd_url: string | null }
+export type UpsertProfileInput = { first_name: string; last_name: string; email: string; phone: string; linkedin_url: string; location: string | null; authorized_to_work: boolean | null; requires_sponsorship: boolean | null; preferred_name: string | null; base_resume_path: string | null }
 
 /** tauri-specta globals **/
 

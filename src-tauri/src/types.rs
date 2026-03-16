@@ -3,6 +3,7 @@
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use specta::Type;
+use sqlx::FromRow;
 use std::sync::LazyLock;
 
 /// Default shortcut for the quick pane
@@ -77,6 +78,113 @@ impl std::fmt::Display for RecoveryError {
             RecoveryError::ParseError { message } => write!(f, "Parse error: {message}"),
         }
     }
+}
+
+// ============================================================================
+// Jobs
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type, FromRow)]
+pub struct Job {
+    pub id: String,
+    pub company: String,
+    pub role: String,
+    pub ats: String,
+    pub apply_url: String,
+    pub job_posting_id: Option<String>,
+    pub board_token: Option<String>,
+    pub status: String,
+    pub tier: String,
+    pub source: Option<String>,
+    pub resume_path: Option<String>,
+    pub cover_letter_path: Option<String>,
+    pub custom_fields: Option<String>,
+    pub notes: Option<String>,
+    pub applied_at: Option<String>,
+    pub follow_up_date: Option<String>,
+    pub response_date: Option<String>,
+    pub salary_range: Option<String>,
+    pub location: Option<String>,
+    pub jd_url: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct CreateJobInput {
+    pub company: String,
+    pub role: String,
+    pub ats: String,
+    pub apply_url: String,
+    pub status: Option<String>,
+    pub tier: Option<String>,
+    pub job_posting_id: Option<String>,
+    pub board_token: Option<String>,
+    pub source: Option<String>,
+    pub resume_path: Option<String>,
+    pub cover_letter_path: Option<String>,
+    pub custom_fields: Option<String>,
+    pub notes: Option<String>,
+    pub salary_range: Option<String>,
+    pub location: Option<String>,
+    pub jd_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct UpdateJobInput {
+    pub company: Option<String>,
+    pub role: Option<String>,
+    pub ats: Option<String>,
+    pub apply_url: Option<String>,
+    pub status: Option<String>,
+    pub tier: Option<String>,
+    pub job_posting_id: Option<String>,
+    pub board_token: Option<String>,
+    pub source: Option<String>,
+    pub resume_path: Option<String>,
+    pub cover_letter_path: Option<String>,
+    pub custom_fields: Option<String>,
+    pub notes: Option<String>,
+    pub applied_at: Option<String>,
+    pub follow_up_date: Option<String>,
+    pub response_date: Option<String>,
+    pub salary_range: Option<String>,
+    pub location: Option<String>,
+    pub jd_url: Option<String>,
+}
+
+// ============================================================================
+// Profile
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type, FromRow)]
+pub struct Profile {
+    pub id: i32,
+    pub first_name: String,
+    pub last_name: String,
+    pub email: String,
+    pub phone: String,
+    pub linkedin_url: String,
+    pub location: String,
+    pub authorized_to_work: bool,
+    pub requires_sponsorship: bool,
+    pub preferred_name: Option<String>,
+    pub base_resume_path: Option<String>,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct UpsertProfileInput {
+    pub first_name: String,
+    pub last_name: String,
+    pub email: String,
+    pub phone: String,
+    pub linkedin_url: String,
+    pub location: Option<String>,
+    pub authorized_to_work: Option<bool>,
+    pub requires_sponsorship: Option<bool>,
+    pub preferred_name: Option<String>,
+    pub base_resume_path: Option<String>,
 }
 
 // ============================================================================
