@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.jcc.app",
   "build": {
-    "removeUnusedCommands": true,
+    "removeUnusedCommands": false,
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npm run build",
