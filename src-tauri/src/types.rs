@@ -224,6 +224,81 @@ pub struct UpdateFollowupInput {
 }
 
 // ============================================================================
+// Notes
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type, FromRow)]
+pub struct Note {
+    pub id: String,
+    pub job_id: String,
+    pub note_type: String,
+    pub title: String,
+    pub content: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct CreateNoteInput {
+    pub job_id: String,
+    pub note_type: String,
+    pub title: String,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct UpdateNoteInput {
+    pub title: Option<String>,
+    pub content: Option<String>,
+}
+
+// ============================================================================
+// Analytics
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type, FromRow)]
+pub struct WeeklyApplications {
+    pub week: String,
+    pub tier1_count: i32,
+    pub tier2_count: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct PipelineFunnel {
+    pub saved: i32,
+    pub applied: i32,
+    pub interviewing: i32,
+    pub offer: i32,
+    pub rejected: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type, FromRow)]
+pub struct AdapterCount {
+    pub adapter: String,
+    pub count: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct TierStats {
+    pub applied: i32,
+    pub responded: i32,
+    pub interviewing: i32,
+    pub response_rate: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct TierComparison {
+    pub tier1: TierStats,
+    pub tier2: TierStats,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SidebarCounts {
+    pub followups_due: i32,
+    pub prep_needed: i32,
+}
+
+// ============================================================================
 // Sidecar
 // ============================================================================
 

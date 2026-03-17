@@ -3,10 +3,12 @@
 //! Each submodule contains related commands and their helper functions.
 //! Import specific commands via their submodule (e.g., `commands::preferences::greet`).
 
+pub mod analytics;
 pub mod credentials;
 pub mod files;
 pub mod followups;
 pub mod jobs;
+pub mod notes;
 pub mod notifications;
 pub mod preferences;
 pub mod profile;

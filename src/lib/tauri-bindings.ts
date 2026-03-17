@@ -23,16 +23,25 @@
 
 export { commands, type Result } from './bindings'
 export type {
+  AdapterCount,
   AppPreferences,
   CreateJobInput,
+  CreateNoteInput,
   Job,
   JsonValue,
+  Note,
+  PipelineFunnel,
   Profile,
   RecoveryError,
+  SidebarCounts,
   SidecarState,
   SidecarStatus,
+  TierComparison,
+  TierStats,
   UpdateJobInput,
+  UpdateNoteInput,
   UpsertProfileInput,
+  WeeklyApplications,
 } from './bindings'
 
 /**

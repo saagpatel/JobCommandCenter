@@ -212,6 +212,102 @@ async deleteFollowup(id: string) : Promise<Result<boolean, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async listNotesForJob(jobId: string) : Promise<Result<Note[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_notes_for_job", { jobId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getNote(id: string) : Promise<Result<Note | null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_note", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async createNote(input: CreateNoteInput) : Promise<Result<Note, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("create_note", { input }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async updateNote(id: string, input: UpdateNoteInput) : Promise<Result<Note, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_note", { id, input }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async deleteNote(id: string) : Promise<Result<boolean, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_note", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getApplicationsByWeek() : Promise<Result<WeeklyApplications[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_applications_by_week") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getPipelineFunnel() : Promise<Result<PipelineFunnel, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_pipeline_funnel") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getResponseRate() : Promise<Result<number, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_response_rate") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getAvgDaysToResponse() : Promise<Result<number, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_avg_days_to_response") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getSubmissionsByAdapter() : Promise<Result<AdapterCount[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_submissions_by_adapter") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getTierComparison() : Promise<Result<TierComparison, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_tier_comparison") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getSidebarCounts() : Promise<Result<SidebarCounts, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_sidebar_counts") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getProfile() : Promise<Result<Profile | null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_profile") };
@@ -312,6 +408,7 @@ async revealInFinder(path: string) : Promise<Result<null, string>> {
 
 /** user-defined types **/
 
+export type AdapterCount = { adapter: string; count: number }
 /**
  * Application preferences that persist to disk.
  * Only contains settings that should be saved between sessions.
@@ -329,9 +426,12 @@ quick_pane_shortcut: string | null;
 language: string | null }
 export type CreateFollowupInput = { job_id: string; scheduled_date: string; recipient_email: string | null }
 export type CreateJobInput = { company: string; role: string; ats: string; apply_url: string; status: string | null; tier: string | null; job_posting_id: string | null; board_token: string | null; source: string | null; resume_path: string | null; cover_letter_path: string | null; custom_fields: string | null; notes: string | null; salary_range: string | null; location: string | null; jd_url: string | null }
+export type CreateNoteInput = { job_id: string; note_type: string; title: string; content: string }
 export type Followup = { id: string; job_id: string; draft_subject: string | null; draft_body: string | null; status: string; scheduled_date: string; sent_at: string | null; gmail_message_id: string | null; recipient_email: string | null; created_at: string }
 export type Job = { id: string; company: string; role: string; ats: string; apply_url: string; job_posting_id: string | null; board_token: string | null; status: string; tier: string; source: string | null; resume_path: string | null; cover_letter_path: string | null; custom_fields: string | null; notes: string | null; applied_at: string | null; follow_up_date: string | null; response_date: string | null; salary_range: string | null; location: string | null; jd_url: string | null; created_at: string; updated_at: string }
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
+export type Note = { id: string; job_id: string; note_type: string; title: string; content: string; created_at: string; updated_at: string }
+export type PipelineFunnel = { saved: number; applied: number; interviewing: number; offer: number; rejected: number }
 export type Profile = { id: number; first_name: string; last_name: string; email: string; phone: string; linkedin_url: string; location: string; authorized_to_work: boolean; requires_sponsorship: boolean; preferred_name: string | null; base_resume_path: string | null; updated_at: string }
 /**
  * Error types for recovery operations (typed for frontend matching)
@@ -357,11 +457,16 @@ export type RecoveryError =
  * JSON serialization/deserialization error
  */
 { type: "ParseError"; message: string }
+export type SidebarCounts = { followups_due: number; prep_needed: number }
 export type SidecarState = "Starting" | "Healthy" | "Unhealthy" | "Stopped" | "Failed"
 export type SidecarStatus = { state: SidecarState; pid: number | null; restart_count: number; uptime_seconds: number | null }
+export type TierComparison = { tier1: TierStats; tier2: TierStats }
+export type TierStats = { applied: number; responded: number; interviewing: number; response_rate: number }
 export type UpdateFollowupInput = { draft_subject: string | null; draft_body: string | null; status: string | null; scheduled_date: string | null; sent_at: string | null; gmail_message_id: string | null; recipient_email: string | null }
 export type UpdateJobInput = { company: string | null; role: string | null; ats: string | null; apply_url: string | null; status: string | null; tier: string | null; job_posting_id: string | null; board_token: string | null; source: string | null; resume_path: string | null; cover_letter_path: string | null; custom_fields: string | null; notes: string | null; applied_at: string | null; follow_up_date: string | null; response_date: string | null; salary_range: string | null; location: string | null; jd_url: string | null }
+export type UpdateNoteInput = { title: string | null; content: string | null }
 export type UpsertProfileInput = { first_name: string; last_name: string; email: string; phone: string; linkedin_url: string; location: string | null; authorized_to_work: boolean | null; requires_sponsorship: boolean | null; preferred_name: string | null; base_resume_path: string | null }
+export type WeeklyApplications = { week: string; tier1_count: number; tier2_count: number }
 
 /** tauri-specta globals **/
 

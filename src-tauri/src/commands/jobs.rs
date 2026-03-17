@@ -182,6 +182,43 @@ pub async fn update_job(
         }
     }
 
+    // Auto-create interview prep note when status changes to "interviewing"
+    if input.status.as_deref() == Some("interviewing") {
+        let existing_prep: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM notes WHERE job_id = ? AND note_type = 'interview_prep'"
+        )
+        .bind(&id)
+        .fetch_one(pool.inner())
+        .await
+        .unwrap_or(0);
+
+        if existing_prep == 0 {
+            // Fetch company/role for the title
+            let job_info: Option<(String, String)> = sqlx::query_as(
+                "SELECT company, role FROM jobs WHERE id = ?"
+            )
+            .bind(&id)
+            .fetch_optional(pool.inner())
+            .await
+            .unwrap_or(None);
+
+            let title = match job_info {
+                Some((company, role)) => format!("Interview Prep: {} - {}", company, role),
+                None => "Interview Prep".to_string(),
+            };
+
+            let note_id = uuid::Uuid::now_v7().to_string();
+            let _ = sqlx::query(
+                "INSERT INTO notes (id, job_id, note_type, title, content) VALUES (?, ?, 'interview_prep', ?, '')"
+            )
+            .bind(&note_id)
+            .bind(&id)
+            .bind(&title)
+            .execute(pool.inner())
+            .await;
+        }
+    }
+
     get_job(app, id)
         .await?
         .ok_or_else(|| "Job was updated but could not be retrieved".to_string())

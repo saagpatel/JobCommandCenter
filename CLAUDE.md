@@ -115,6 +115,8 @@ job-command-center/
 │   │   ├── lib.rs                # Plugin registration + setup
 │   │   ├── commands/
 │   │   │   ├── jobs.rs           # CRUD for job listings
+│   │   │   ├── notes.rs          # CRUD for notes (interview prep, personal)
+│   │   │   ├── analytics.rs      # Aggregate analytics queries
 │   │   │   ├── submissions.rs    # Submission log queries
 │   │   │   ├── followups.rs      # Follow-up scheduling
 │   │   │   └── sidecar.rs        # Sidecar lifecycle management
@@ -160,7 +162,7 @@ job-command-center/
 - **File naming:** kebab-case for files, PascalCase for components, camelCase for hooks/utils
 - **Git commits:** `feat(tracker): add kanban drag-drop` / `fix(sidecar): handle Ashby rate limit`
 
-## Current Phase
+## Current Phase — v1.0 Feature Complete
 
 **Phase 0: Foundation** (target: Week 1-2)
 
@@ -195,10 +197,15 @@ job-command-center/
 **Phase 3: Follow-up & Intelligence**
 
 - [x] Follow-up email system with Gmail API + Claude AI drafting (Session 9)
-- [ ] Interview prep brief generation (Session 10)
-- [ ] Pipeline analytics dashboard (Session 11)
+- [x] Interview prep briefs + Analytics dashboard + sidebar badges + keyboard shortcuts (Session 10)
+
+**Phase 3 COMPLETE. v1.0 Feature Complete — all 10 sessions done.**
 
 **Note:** Session 9 built the full follow-up pipeline: Rust CRUD (5 commands + auto-create on status→"applied"), Python GmailService (OAuth2 InstalledAppFlow at ~/.jcc/gmail/), ClaudeAIService.draft_followup + interview_prep (interview_prep endpoint pre-built for Session 10), Frontend FollowupManager with filter tabs + expandable rows + AI draft generation + Gmail send. Gmail requires user to place client_secrets.json at ~/.jcc/gmail/client_secrets.json before connecting. User always reviews draft before sending — never auto-send.
+
+**Note:** Session 10 (final): Notes CRUD (5 Rust commands), Analytics (7 Rust commands: applications by week, pipeline funnel, response rate, avg days to response, submissions by adapter, tier comparison, sidebar counts). Interview Prep view with AI brief generation via sidecar POST /ai/interview-prep, markdown rendering. Analytics dashboard with stat cards, stacked bar chart (recharts), pipeline funnel bars, ATS submission bars, tier comparison. Sidebar badges (followups due, prep needed) with 30s polling. Keyboard shortcuts Cmd+1-6 for view switching (sidebar toggles moved to Cmd+[/]). Auto-create interview_prep note on status→"interviewing".
+
+**Post-v1.0 Backlog:** Lever adapter, Gmail inbox scanning, bulk LinkedIn import, Chrome extension, parallel Playwright sessions.
 
 ## Key Decisions Made
 

@@ -4,21 +4,12 @@ import { KanbanBoard } from '@/components/tracker/KanbanBoard'
 import { SettingsPage } from '@/components/settings/SettingsPage'
 import { SubmitConsole } from '@/components/submit/SubmitConsole'
 import { FollowupManager } from '@/components/followup/FollowupManager'
+import { InterviewPrep } from '@/components/interview/InterviewPrep'
+import { Analytics } from '@/components/pipeline/Analytics'
 
 interface MainWindowContentProps {
   children?: React.ReactNode
   className?: string
-}
-
-function ViewPlaceholder({ name }: { name: string }) {
-  return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4">
-      <h1 className="text-4xl font-bold tracking-tight text-foreground">
-        {name}
-      </h1>
-      <p className="text-muted-foreground">Coming soon.</p>
-    </div>
-  )
 }
 
 export function MainWindowContent({
@@ -37,9 +28,9 @@ export function MainWindowContent({
       case 'followups':
         return <FollowupManager />
       case 'interview':
-        return <ViewPlaceholder name="Interview Prep" />
+        return <InterviewPrep />
       case 'analytics':
-        return <ViewPlaceholder name="Analytics" />
+        return <Analytics />
       case 'settings':
         return <SettingsPage />
     }
