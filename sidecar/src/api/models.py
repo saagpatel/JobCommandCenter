@@ -73,3 +73,25 @@ class BatchSubmissionRequest(BaseModel):
     jobs: list[JobListing]
     profile: ApplicantProfile
     dry_run: bool = True
+
+
+class PlatformLoginResponse(BaseModel):
+    platform: str
+    status: Literal["browser_opened", "logged_in", "error"]
+    message: str | None = None
+
+
+class PlatformSessionStatus(BaseModel):
+    platform: str
+    has_session: bool
+
+
+class FieldMappingRequest(BaseModel):
+    questions: list[dict[str, object]]
+    profile: ApplicantProfile
+    job: JobListing
+
+
+class FieldMappingResponse(BaseModel):
+    mapped_answers: dict[str, str]
+    unmapped: list[str]

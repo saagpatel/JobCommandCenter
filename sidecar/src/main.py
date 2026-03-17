@@ -53,9 +53,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from src.adapters.greenhouse import GreenhouseAdapter
     registry.register("greenhouse", GreenhouseAdapter())
 
+    from src.services.playwright_base import PlaywrightManager
+    from src.services.claude_ai import ClaudeAIService
+
+    pw_mgr = PlaywrightManager()
+    app.state.playwright = pw_mgr
+    app.state.claude = ClaudeAIService()
+
+    from src.adapters.linkedin import LinkedInAdapter
+    registry.register("linkedin", LinkedInAdapter(pw_manager=pw_mgr, claude_service=app.state.claude))
+
     app.state.registry = registry
     yield
     log.info("sidecar shutting down")
+    await pw_mgr.cleanup()
 
 
 def _build_app(shutdown_event: asyncio.Event) -> FastAPI:

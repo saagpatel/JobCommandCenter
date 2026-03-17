@@ -183,6 +183,11 @@ job-command-center/
 
 **Note:** Ashby API requires authentication (API key via Basic auth). The plan assumed public endpoints but they return 401 without a key. API key is passed via `AshbyAdapter(api_key=...)` and stored in macOS Keychain. Greenhouse GET endpoints are public (no auth), but POST submission may require API key (returns 401/403 → `manual_required` status).
 
+**Phase 2: Browser Automation Adapters**
+
+- [x] Playwright base service + LinkedIn Easy Apply adapter + Claude AI field mapping (Session 7)
+- [ ] Indeed + Gem + Workday + Generic adapters (Session 8)
+
 ## Key Decisions Made
 
 | Decision                | Choice                                             | Rationale                                                                                                       |
