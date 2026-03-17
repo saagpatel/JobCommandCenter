@@ -50,6 +50,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from src.adapters.ashby import AshbyAdapter
     registry.register("ashby", AshbyAdapter())
 
+    from src.adapters.greenhouse import GreenhouseAdapter
+    registry.register("greenhouse", GreenhouseAdapter())
+
     app.state.registry = registry
     yield
     log.info("sidecar shutting down")

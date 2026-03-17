@@ -3,10 +3,38 @@ from __future__ import annotations
 import time
 
 from fastapi import APIRouter, Request
+from starlette.responses import StreamingResponse
 
-from .models import HealthResponse, SubmissionRequest, SubmissionResult
+from .models import BatchSubmissionRequest, HealthResponse, SubmissionRequest, SubmissionResult
 
 router = APIRouter()
+
+
+@router.post("/submit/batch")
+async def submit_batch(request: Request, body: BatchSubmissionRequest) -> StreamingResponse:
+    registry = request.app.state.registry
+
+    async def event_stream():  # type: ignore[return]
+        for job in body.jobs:
+            adapter = registry.get(job.ats)
+            if adapter is None:
+                result = SubmissionResult(
+                    job_id="",
+                    company=job.company,
+                    role=job.role,
+                    adapter=job.ats,
+                    status="failed",
+                    resume_uploaded=False,
+                    cover_letter_uploaded=False,
+                    error=f"No adapter registered for ATS: {job.ats}",
+                    duration_seconds=0,
+                    timestamp="",
+                )
+            else:
+                result = await adapter.submit(job, body.profile, body.dry_run)
+            yield f"data: {result.model_dump_json()}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @router.post("/submit", response_model=SubmissionResult)

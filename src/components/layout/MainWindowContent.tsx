@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/ui-store'
 import { KanbanBoard } from '@/components/tracker/KanbanBoard'
 import { SettingsPage } from '@/components/settings/SettingsPage'
+import { SubmitConsole } from '@/components/submit/SubmitConsole'
 
 interface MainWindowContentProps {
   children?: React.ReactNode
@@ -31,7 +32,7 @@ export function MainWindowContent({
       case 'tracker':
         return <KanbanBoard />
       case 'submit':
-        return <ViewPlaceholder name="Submit Console" />
+        return <SubmitConsole />
       case 'followups':
         return <ViewPlaceholder name="Follow-ups" />
       case 'interview':

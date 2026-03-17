@@ -1,6 +1,14 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 
+// Mock ResizeObserver for components that use @radix-ui/react-scroll-area
+class MockResizeObserver {
+  observe = vi.fn()
+  unobserve = vi.fn()
+  disconnect = vi.fn()
+}
+global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver
+
 // Mock matchMedia for tests
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

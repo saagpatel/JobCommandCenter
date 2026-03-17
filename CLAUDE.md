@@ -177,9 +177,11 @@ job-command-center/
 **Phase 1: ATS Adapters**
 
 - [x] Ashby API adapter with form fetching, field mapping, multipart submit (Session 5)
-- [ ] Greenhouse API adapter + Submit Console UI (Session 6)
+- [x] Greenhouse API adapter + Submit Console UI with batch SSE streaming (Session 6)
 
-**Note:** Ashby API requires authentication (API key via Basic auth). The plan assumed public endpoints but they return 401 without a key. API key is passed via `AshbyAdapter(api_key=...)` and stored in macOS Keychain.
+**Phase 1 COMPLETE.**
+
+**Note:** Ashby API requires authentication (API key via Basic auth). The plan assumed public endpoints but they return 401 without a key. API key is passed via `AshbyAdapter(api_key=...)` and stored in macOS Keychain. Greenhouse GET endpoints are public (no auth), but POST submission may require API key (returns 401/403 → `manual_required` status).
 
 ## Key Decisions Made
 

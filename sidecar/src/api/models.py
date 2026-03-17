@@ -67,3 +67,9 @@ class SubmissionResult(BaseModel):
     error: str | None = None
     duration_seconds: float
     timestamp: str
+
+
+class BatchSubmissionRequest(BaseModel):
+    jobs: list[JobListing]
+    profile: ApplicantProfile
+    dry_run: bool = True
