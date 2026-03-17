@@ -45,6 +45,15 @@ class SubmissionRequest(BaseModel):
     dry_run: bool = True
 
 
+class FieldMappingResult(BaseModel):
+    field_submissions: list[dict] = []
+    file_references: dict[str, str] = {}
+    unmapped_required: list[str] = []
+    warnings: list[str] = []
+    fields_filled: list[str] = []
+    fields_skipped: list[str] = []
+
+
 class SubmissionResult(BaseModel):
     job_id: str
     company: str

@@ -45,7 +45,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     log = structlog.get_logger("jcc.lifespan")
     log.info("sidecar starting", host=_HOST, port=_PORT)
     app.state.startup_time = time.monotonic()
-    app.state.registry = AdapterRegistry()
+    registry = AdapterRegistry()
+
+    from src.adapters.ashby import AshbyAdapter
+    registry.register("ashby", AshbyAdapter())
+
+    app.state.registry = registry
     yield
     log.info("sidecar shutting down")
 

@@ -172,7 +172,14 @@ job-command-center/
 - [x] Implement sidecar spawn/health-check from Rust backend (Session 3)
 - [x] Create applicant profile settings page (Session 4)
 
-**Phase 0 COMPLETE.** Next: Phase 1 — ATS adapters (Session 5: Ashby/Greenhouse API adapters)
+**Phase 0 COMPLETE.**
+
+**Phase 1: ATS Adapters**
+
+- [x] Ashby API adapter with form fetching, field mapping, multipart submit (Session 5)
+- [ ] Greenhouse API adapter + Submit Console UI (Session 6)
+
+**Note:** Ashby API requires authentication (API key via Basic auth). The plan assumed public endpoints but they return 401 without a key. API key is passed via `AshbyAdapter(api_key=...)` and stored in macOS Keychain.
 
 ## Key Decisions Made
 
