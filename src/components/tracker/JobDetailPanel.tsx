@@ -29,10 +29,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { ExternalLink, Trash2 } from 'lucide-react'
+import { ExternalLink, Trash2, FolderOpen, Eye } from 'lucide-react'
+import { open } from '@tauri-apps/plugin-dialog'
+import { toast } from 'sonner'
 import { useUIStore } from '@/store/ui-store'
 import { useJob, useUpdateJob, useDeleteJob } from '@/services/jobs'
 import { openUrl } from '@tauri-apps/plugin-opener'
+import { commands } from '@/lib/tauri-bindings'
+import { logger } from '@/lib/logger'
 import type { UpdateJobInput } from '@/lib/bindings'
 
 const STATUS_OPTIONS = [
@@ -260,6 +264,100 @@ export function JobDetailPanel() {
                     defaultValue={job.jd_url ?? ''}
                     onBlur={e => handleFieldBlur('jd_url', e.target.value)}
                   />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Resume</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    defaultValue={job.resume_path ?? ''}
+                    onBlur={e => handleFieldBlur('resume_path', e.target.value)}
+                    placeholder="/path/to/resume.pdf"
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={async () => {
+                      const selected = await open({
+                        multiple: false,
+                        filters: [{ name: 'PDF', extensions: ['pdf'] }],
+                      })
+                      if (selected) {
+                        const input = emptyUpdate()
+                        input.resume_path = selected
+                        updateJob.mutate({ id: job.id, input })
+                      }
+                    }}
+                    title="Browse for file"
+                  >
+                    <FolderOpen className="h-4 w-4" />
+                  </Button>
+                  {job.resume_path && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={async () => {
+                        const result = await commands.revealInFinder(job.resume_path!)
+                        if (result.status === 'error') {
+                          logger.error('Failed to reveal resume in Finder', { error: result.error })
+                          toast.error('Could not open Finder', { description: result.error })
+                        }
+                      }}
+                      title="Reveal in Finder"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Cover Letter</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    defaultValue={job.cover_letter_path ?? ''}
+                    onBlur={e =>
+                      handleFieldBlur('cover_letter_path', e.target.value)
+                    }
+                    placeholder="/path/to/cover-letter.pdf"
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={async () => {
+                      const selected = await open({
+                        multiple: false,
+                        filters: [{ name: 'PDF', extensions: ['pdf'] }],
+                      })
+                      if (selected) {
+                        const input = emptyUpdate()
+                        input.cover_letter_path = selected
+                        updateJob.mutate({ id: job.id, input })
+                      }
+                    }}
+                    title="Browse for file"
+                  >
+                    <FolderOpen className="h-4 w-4" />
+                  </Button>
+                  {job.cover_letter_path && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={async () => {
+                        const result = await commands.revealInFinder(job.cover_letter_path!)
+                        if (result.status === 'error') {
+                          logger.error('Failed to reveal cover letter in Finder', { error: result.error })
+                          toast.error('Could not open Finder', { description: result.error })
+                        }
+                      }}
+                      title="Reveal in Finder"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
 

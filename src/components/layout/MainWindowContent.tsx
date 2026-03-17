@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/ui-store'
 import { KanbanBoard } from '@/components/tracker/KanbanBoard'
+import { SettingsPage } from '@/components/settings/SettingsPage'
 
 interface MainWindowContentProps {
   children?: React.ReactNode
@@ -38,7 +39,7 @@ export function MainWindowContent({
       case 'analytics':
         return <ViewPlaceholder name="Analytics" />
       case 'settings':
-        return <ViewPlaceholder name="Settings" />
+        return <SettingsPage />
     }
   }
 

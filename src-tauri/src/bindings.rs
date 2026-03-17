@@ -2,7 +2,8 @@ use tauri_specta::{collect_commands, Builder};
 
 pub fn generate_bindings() -> Builder<tauri::Wry> {
     use crate::commands::{
-        jobs, notifications, preferences, profile, quick_pane, recovery, sidecar,
+        credentials, files, jobs, notifications, preferences, profile, quick_pane, recovery,
+        sidecar,
     };
 
     Builder::<tauri::Wry>::new().commands(collect_commands![
@@ -28,6 +29,11 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         sidecar::stop_sidecar,
         sidecar::check_sidecar_health,
         sidecar::get_sidecar_status,
+        credentials::store_credential,
+        credentials::get_credential,
+        credentials::delete_credential,
+        files::validate_file_path,
+        files::reveal_in_finder,
     ])
 }
 

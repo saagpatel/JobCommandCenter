@@ -1,9 +1,11 @@
 # Job Command Center
 
 ## Project Overview
+
 A Tauri 2 desktop app that serves as the central hub for an automated job search pipeline. Replaces a Claude.ai React artifact tracker with a full-featured local application. Tracks job listings, automates application submissions across ATS platforms (Ashby, Greenhouse, LinkedIn Easy Apply, Indeed) and browser-automated portals (Gem, Workday), manages follow-up emails via Gmail API, generates interview prep briefs, and provides analytics on the job search pipeline. The submission engine runs as a Python sidecar process bundled via PyInstaller, communicating with the Tauri frontend over a local HTTP API.
 
 ## Tech Stack
+
 - **Desktop framework:** Tauri 2 (Rust backend + WebView frontend)
 - **Frontend:** React 19 + TypeScript + Vite
 - **UI components:** shadcn/ui + Tailwind CSS
@@ -20,6 +22,7 @@ A Tauri 2 desktop app that serves as the central hub for an automated job search
 - **Starter template:** Fork of dannysmith/tauri-template (Tauri 2 + React 19 + shadcn/ui + Zustand + TanStack Query + tauri-specta)
 
 ## Architecture
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    TAURI DESKTOP APP                     │
@@ -76,6 +79,7 @@ A Tauri 2 desktop app that serves as the central hub for an automated job search
 ```
 
 ## Project Structure
+
 ```
 job-command-center/
 ├── CLAUDE.md
@@ -147,6 +151,7 @@ job-command-center/
 ```
 
 ## Development Conventions
+
 - **TypeScript:** Strict mode, no `any` types, functional components only
 - **React:** Hooks only, no class components. React Compiler handles memoization (no manual useMemo/useCallback)
 - **State:** Component UI → useState. Cross-component UI → Zustand. Persistent data → TanStack Query + SQLite
@@ -156,29 +161,35 @@ job-command-center/
 - **Git commits:** `feat(tracker): add kanban drag-drop` / `fix(sidecar): handle Ashby rate limit`
 
 ## Current Phase
+
 **Phase 0: Foundation** (target: Week 1-2)
+
 - [x] Fork dannysmith/tauri-template, strip demo content (Session 1)
 - [x] Define SQLite schema (jobs, submissions, followups, notes) (Session 1)
 - [x] Implement Rust CRUD commands for jobs table (Session 1)
 - [x] Build Tracker Board view (Kanban: Saved → Applied → Interview → Offer → Rejected) (Session 2)
 - [x] Set up Python sidecar project structure with FastAPI (Session 3)
 - [x] Implement sidecar spawn/health-check from Rust backend (Session 3)
-- [ ] Create applicant profile settings page
+- [x] Create applicant profile settings page (Session 4)
+
+**Phase 0 COMPLETE.** Next: Phase 1 — ATS adapters (Session 5: Ashby/Greenhouse API adapters)
 
 ## Key Decisions Made
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Desktop framework | Tauri 2 (not Electron) | 10-20MB vs 200MB+, native macOS feel, Rust backend perf |
-| Starter template | dannysmith/tauri-template fork | Pre-built shadcn/ui, Zustand, TanStack Query, tauri-specta, Claude Code-ready |
-| Sidecar language | Python (not Node/Rust) | Best Playwright support, Anthropic SDK, Gmail API libs, fastest to build |
-| Sidecar communication | Local HTTP (FastAPI on localhost:9876) | More flexible than stdin/stdout, supports streaming responses for real-time UI updates, auto-generated API docs |
-| LLM | Claude Sonnet via Anthropic API | Higher quality than local models for email drafting, already paying for Max 20x |
-| LinkedIn/Indeed | Playwright Easy Apply | Persistent browser context with session reuse, stealth techniques for anti-detection |
-| Gmail | Google API Python client, OAuth2 | Desktop app flow (InstalledAppFlow), gmail.send scope only, token stored locally |
-| Database | SQLite via tauri-plugin-sql | Local-first, no server, migrations in Rust, React Query caching on frontend |
-| ATS submission strategy | API-first (Ashby, Greenhouse), Playwright-fallback | API is faster, more reliable, immune to DOM changes |
+
+| Decision                | Choice                                             | Rationale                                                                                                       |
+| ----------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Desktop framework       | Tauri 2 (not Electron)                             | 10-20MB vs 200MB+, native macOS feel, Rust backend perf                                                         |
+| Starter template        | dannysmith/tauri-template fork                     | Pre-built shadcn/ui, Zustand, TanStack Query, tauri-specta, Claude Code-ready                                   |
+| Sidecar language        | Python (not Node/Rust)                             | Best Playwright support, Anthropic SDK, Gmail API libs, fastest to build                                        |
+| Sidecar communication   | Local HTTP (FastAPI on localhost:9876)             | More flexible than stdin/stdout, supports streaming responses for real-time UI updates, auto-generated API docs |
+| LLM                     | Claude Sonnet via Anthropic API                    | Higher quality than local models for email drafting, already paying for Max 20x                                 |
+| LinkedIn/Indeed         | Playwright Easy Apply                              | Persistent browser context with session reuse, stealth techniques for anti-detection                            |
+| Gmail                   | Google API Python client, OAuth2                   | Desktop app flow (InstalledAppFlow), gmail.send scope only, token stored locally                                |
+| Database                | SQLite via tauri-plugin-sql                        | Local-first, no server, migrations in Rust, React Query caching on frontend                                     |
+| ATS submission strategy | API-first (Ashby, Greenhouse), Playwright-fallback | API is faster, more reliable, immune to DOM changes                                                             |
 
 ## Do NOT
+
 - Do not scaffold the entire app in one session — each major view (Tracker, Submit Console, Follow-ups, Analytics) is its own session
 - Do not put Playwright automation logic in the Tauri Rust backend — it stays in the Python sidecar
 - Do not use Electron patterns (ipcMain/ipcRenderer) — use tauri-specta commands and events

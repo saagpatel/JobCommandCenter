@@ -27,6 +27,10 @@ vi.mock('@tauri-apps/plugin-updater', () => ({
   check: vi.fn().mockResolvedValue(null),
 }))
 
+vi.mock('@tauri-apps/plugin-dialog', () => ({
+  open: vi.fn().mockResolvedValue(null),
+}))
+
 // Mock typed Tauri bindings (tauri-specta generated)
 vi.mock('@/lib/tauri-bindings', () => ({
   commands: {
@@ -42,6 +46,54 @@ vi.mock('@/lib/tauri-bindings', () => ({
     cleanupOldRecoveryFiles: vi
       .fn()
       .mockResolvedValue({ status: 'ok', data: 0 }),
+    listJobs: vi.fn().mockResolvedValue({ status: 'ok', data: [] }),
+    getJob: vi.fn().mockResolvedValue({ status: 'ok', data: null }),
+    createJob: vi.fn().mockResolvedValue({ status: 'ok', data: {} }),
+    updateJob: vi.fn().mockResolvedValue({ status: 'ok', data: {} }),
+    deleteJob: vi.fn().mockResolvedValue({ status: 'ok', data: true }),
+    getProfile: vi.fn().mockResolvedValue({ status: 'ok', data: null }),
+    upsertProfile: vi.fn().mockResolvedValue({ status: 'ok', data: {} }),
+    startSidecar: vi.fn().mockResolvedValue({
+      status: 'ok',
+      data: {
+        state: 'Stopped',
+        pid: null,
+        restart_count: 0,
+        uptime_seconds: null,
+      },
+    }),
+    stopSidecar: vi.fn().mockResolvedValue({
+      status: 'ok',
+      data: {
+        state: 'Stopped',
+        pid: null,
+        restart_count: 0,
+        uptime_seconds: null,
+      },
+    }),
+    checkSidecarHealth: vi.fn().mockResolvedValue({
+      status: 'ok',
+      data: {
+        state: 'Stopped',
+        pid: null,
+        restart_count: 0,
+        uptime_seconds: null,
+      },
+    }),
+    getSidecarStatus: vi.fn().mockResolvedValue({
+      status: 'ok',
+      data: {
+        state: 'Stopped',
+        pid: null,
+        restart_count: 0,
+        uptime_seconds: null,
+      },
+    }),
+    storeCredential: vi.fn().mockResolvedValue({ status: 'ok', data: null }),
+    getCredential: vi.fn().mockResolvedValue({ status: 'ok', data: null }),
+    deleteCredential: vi.fn().mockResolvedValue({ status: 'ok', data: false }),
+    validateFilePath: vi.fn().mockResolvedValue({ status: 'ok', data: true }),
+    revealInFinder: vi.fn().mockResolvedValue({ status: 'ok', data: null }),
   },
   unwrapResult: vi.fn((result: { status: string; data?: unknown }) => {
     if (result.status === 'ok') return result.data

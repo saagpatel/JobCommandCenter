@@ -46,6 +46,12 @@ tokio = { version = "1", features = ["sync", "process"] }
 # HTTP client for sidecar health checks (localhost only, no TLS needed)
 reqwest = { version = "0.12", default-features = false, features = ["json"] }
 
+# Credential storage (macOS Keychain)
+keyring = { version = "3", features = ["apple-native"] }
+
+# Path expansion (~/ → /Users/...)
+shellexpand = "3"
+
 # Type-safe Tauri command bindings
 specta = { version = "=2.0.0-rc.22", features = ["derive", "serde_json"] }
 tauri-specta = { version = "=2.0.0-rc.21", features = ["typescript"] }
