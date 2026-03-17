@@ -17,6 +17,7 @@ export function useJobs(status?: string) {
       const result = await commands.listJobs(status ?? null)
       return unwrapResult(result)
     },
+    staleTime: 30_000,
   })
 }
 
@@ -29,6 +30,7 @@ export function useJob(id: string | null) {
       return unwrapResult(result)
     },
     enabled: !!id,
+    staleTime: 30_000,
   })
 }
 

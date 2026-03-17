@@ -2,6 +2,7 @@ use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager};
 
 use crate::types::{CreateJobInput, Job, UpdateJobInput};
+use crate::utils::maybe_set;
 
 #[tauri::command]
 #[specta::specta]
@@ -106,34 +107,25 @@ pub async fn update_job(
     let mut set_clauses: Vec<String> = Vec::new();
     let mut values: Vec<String> = Vec::new();
 
-    macro_rules! maybe_set {
-        ($field:ident, $col:expr) => {
-            if let Some(ref val) = input.$field {
-                set_clauses.push(format!("{} = ?", $col));
-                values.push(val.clone());
-            }
-        };
-    }
-
-    maybe_set!(company, "company");
-    maybe_set!(role, "role");
-    maybe_set!(ats, "ats");
-    maybe_set!(apply_url, "apply_url");
-    maybe_set!(job_posting_id, "job_posting_id");
-    maybe_set!(board_token, "board_token");
-    maybe_set!(status, "status");
-    maybe_set!(tier, "tier");
-    maybe_set!(source, "source");
-    maybe_set!(resume_path, "resume_path");
-    maybe_set!(cover_letter_path, "cover_letter_path");
-    maybe_set!(custom_fields, "custom_fields");
-    maybe_set!(notes, "notes");
-    maybe_set!(applied_at, "applied_at");
-    maybe_set!(follow_up_date, "follow_up_date");
-    maybe_set!(response_date, "response_date");
-    maybe_set!(salary_range, "salary_range");
-    maybe_set!(location, "location");
-    maybe_set!(jd_url, "jd_url");
+    maybe_set!(input, set_clauses, values, company, "company");
+    maybe_set!(input, set_clauses, values, role, "role");
+    maybe_set!(input, set_clauses, values, ats, "ats");
+    maybe_set!(input, set_clauses, values, apply_url, "apply_url");
+    maybe_set!(input, set_clauses, values, job_posting_id, "job_posting_id");
+    maybe_set!(input, set_clauses, values, board_token, "board_token");
+    maybe_set!(input, set_clauses, values, status, "status");
+    maybe_set!(input, set_clauses, values, tier, "tier");
+    maybe_set!(input, set_clauses, values, source, "source");
+    maybe_set!(input, set_clauses, values, resume_path, "resume_path");
+    maybe_set!(input, set_clauses, values, cover_letter_path, "cover_letter_path");
+    maybe_set!(input, set_clauses, values, custom_fields, "custom_fields");
+    maybe_set!(input, set_clauses, values, notes, "notes");
+    maybe_set!(input, set_clauses, values, applied_at, "applied_at");
+    maybe_set!(input, set_clauses, values, follow_up_date, "follow_up_date");
+    maybe_set!(input, set_clauses, values, response_date, "response_date");
+    maybe_set!(input, set_clauses, values, salary_range, "salary_range");
+    maybe_set!(input, set_clauses, values, location, "location");
+    maybe_set!(input, set_clauses, values, jd_url, "jd_url");
 
     if set_clauses.is_empty() {
         return get_job(app, id)
@@ -171,12 +163,24 @@ pub async fn update_job(
         .unwrap_or(0);
 
         if existing == 0 {
+            // Read follow-up interval from profile (default 7 days)
+            let follow_up_days: i32 = sqlx::query_scalar(
+                "SELECT follow_up_days FROM profile WHERE id = 1"
+            )
+            .fetch_optional(pool.inner())
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or(7);
+
+            let interval = format!("+{follow_up_days} days");
             let followup_id = uuid::Uuid::now_v7().to_string();
             let _ = sqlx::query(
-                "INSERT INTO followups (id, job_id, status, scheduled_date) VALUES (?, ?, 'pending', datetime('now', '+7 days'))"
+                "INSERT INTO followups (id, job_id, status, scheduled_date) VALUES (?, ?, 'pending', datetime('now', ?))"
             )
             .bind(&followup_id)
             .bind(&id)
+            .bind(&interval)
             .execute(pool.inner())
             .await;
         }

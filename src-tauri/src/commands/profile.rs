@@ -9,7 +9,7 @@ pub async fn get_profile(app: AppHandle) -> Result<Option<Profile>, String> {
     let pool = app.state::<SqlitePool>();
 
     sqlx::query_as::<_, Profile>(
-        "SELECT id, first_name, last_name, email, phone, linkedin_url, location, authorized_to_work, requires_sponsorship, preferred_name, base_resume_path, updated_at FROM profile WHERE id = 1",
+        "SELECT id, first_name, last_name, email, phone, linkedin_url, location, authorized_to_work, requires_sponsorship, preferred_name, base_resume_path, follow_up_days, updated_at FROM profile WHERE id = 1",
     )
     .fetch_optional(pool.inner())
     .await
@@ -29,9 +29,10 @@ pub async fn upsert_profile(
     let location = input.location.unwrap_or_else(|| "San Francisco, CA".to_string());
     let authorized = input.authorized_to_work.unwrap_or(true);
     let sponsorship = input.requires_sponsorship.unwrap_or(false);
+    let follow_up_days = input.follow_up_days.unwrap_or(7);
 
     sqlx::query(
-        "INSERT OR REPLACE INTO profile (id, first_name, last_name, email, phone, linkedin_url, location, authorized_to_work, requires_sponsorship, preferred_name, base_resume_path, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+        "INSERT OR REPLACE INTO profile (id, first_name, last_name, email, phone, linkedin_url, location, authorized_to_work, requires_sponsorship, preferred_name, base_resume_path, follow_up_days, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
     )
     .bind(&input.first_name)
     .bind(&input.last_name)
@@ -43,6 +44,7 @@ pub async fn upsert_profile(
     .bind(sponsorship)
     .bind(&input.preferred_name)
     .bind(&input.base_resume_path)
+    .bind(follow_up_days)
     .execute(pool.inner())
     .await
     .map_err(|e| {

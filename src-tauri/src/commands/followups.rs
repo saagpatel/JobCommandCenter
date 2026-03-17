@@ -2,6 +2,7 @@ use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager};
 
 use crate::types::{CreateFollowupInput, Followup, UpdateFollowupInput};
+use crate::utils::maybe_set;
 
 const FOLLOWUP_COLUMNS: &str = "id, job_id, draft_subject, draft_body, status, scheduled_date, sent_at, gmail_message_id, recipient_email, created_at";
 
@@ -88,22 +89,13 @@ pub async fn update_followup(app: AppHandle, id: String, input: UpdateFollowupIn
     let mut set_clauses: Vec<String> = Vec::new();
     let mut values: Vec<String> = Vec::new();
 
-    macro_rules! maybe_set {
-        ($field:ident, $col:expr) => {
-            if let Some(ref val) = input.$field {
-                set_clauses.push(format!("{} = ?", $col));
-                values.push(val.clone());
-            }
-        };
-    }
-
-    maybe_set!(draft_subject, "draft_subject");
-    maybe_set!(draft_body, "draft_body");
-    maybe_set!(status, "status");
-    maybe_set!(scheduled_date, "scheduled_date");
-    maybe_set!(sent_at, "sent_at");
-    maybe_set!(gmail_message_id, "gmail_message_id");
-    maybe_set!(recipient_email, "recipient_email");
+    maybe_set!(input, set_clauses, values, draft_subject, "draft_subject");
+    maybe_set!(input, set_clauses, values, draft_body, "draft_body");
+    maybe_set!(input, set_clauses, values, status, "status");
+    maybe_set!(input, set_clauses, values, scheduled_date, "scheduled_date");
+    maybe_set!(input, set_clauses, values, sent_at, "sent_at");
+    maybe_set!(input, set_clauses, values, gmail_message_id, "gmail_message_id");
+    maybe_set!(input, set_clauses, values, recipient_email, "recipient_email");
 
     if set_clauses.is_empty() {
         return sqlx::query_as::<_, Followup>(

@@ -30,38 +30,33 @@ pub async fn get_applications_by_week(app: AppHandle) -> Result<Vec<WeeklyApplic
 pub async fn get_pipeline_funnel(app: AppHandle) -> Result<PipelineFunnel, String> {
     let pool = app.state::<SqlitePool>();
 
-    let saved: i32 = sqlx::query_scalar("SELECT COUNT(*) FROM jobs WHERE status = 'saved'")
-        .fetch_one(pool.inner())
-        .await
-        .map_err(|e| format!("Failed to get pipeline funnel: {e}"))?;
+    let rows: Vec<(String, i32)> = sqlx::query_as(
+        "SELECT status, COUNT(*) as count FROM jobs GROUP BY status",
+    )
+    .fetch_all(pool.inner())
+    .await
+    .map_err(|e| format!("Failed to get pipeline funnel: {e}"))?;
 
-    let applied: i32 = sqlx::query_scalar("SELECT COUNT(*) FROM jobs WHERE status = 'applied'")
-        .fetch_one(pool.inner())
-        .await
-        .map_err(|e| format!("Failed to get pipeline funnel: {e}"))?;
+    let mut funnel = PipelineFunnel {
+        saved: 0,
+        applied: 0,
+        interviewing: 0,
+        offer: 0,
+        rejected: 0,
+    };
 
-    let interviewing: i32 = sqlx::query_scalar("SELECT COUNT(*) FROM jobs WHERE status = 'interviewing'")
-        .fetch_one(pool.inner())
-        .await
-        .map_err(|e| format!("Failed to get pipeline funnel: {e}"))?;
+    for (status, count) in rows {
+        match status.as_str() {
+            "saved" => funnel.saved = count,
+            "applied" => funnel.applied = count,
+            "interviewing" => funnel.interviewing = count,
+            "offer" => funnel.offer = count,
+            "rejected" => funnel.rejected = count,
+            _ => {}
+        }
+    }
 
-    let offer: i32 = sqlx::query_scalar("SELECT COUNT(*) FROM jobs WHERE status = 'offer'")
-        .fetch_one(pool.inner())
-        .await
-        .map_err(|e| format!("Failed to get pipeline funnel: {e}"))?;
-
-    let rejected: i32 = sqlx::query_scalar("SELECT COUNT(*) FROM jobs WHERE status = 'rejected'")
-        .fetch_one(pool.inner())
-        .await
-        .map_err(|e| format!("Failed to get pipeline funnel: {e}"))?;
-
-    Ok(PipelineFunnel {
-        saved,
-        applied,
-        interviewing,
-        offer,
-        rejected,
-    })
+    Ok(funnel)
 }
 
 #[tauri::command]
@@ -130,47 +125,38 @@ pub async fn get_submissions_by_adapter(app: AppHandle) -> Result<Vec<AdapterCou
 pub async fn get_tier_comparison(app: AppHandle) -> Result<TierComparison, String> {
     let pool = app.state::<SqlitePool>();
 
-    async fn tier_stats(pool: &SqlitePool, tier: &str) -> Result<TierStats, String> {
-        let applied: i32 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM jobs WHERE tier = ? AND applied_at IS NOT NULL",
-        )
-        .bind(tier)
-        .fetch_one(pool)
-        .await
-        .map_err(|e| format!("Failed to get tier stats: {e}"))?;
+    let rows: Vec<(String, i32, i32, i32)> = sqlx::query_as(
+        "SELECT tier,
+            SUM(CASE WHEN applied_at IS NOT NULL THEN 1 ELSE 0 END) as applied,
+            SUM(CASE WHEN applied_at IS NOT NULL AND status NOT IN ('saved', 'applied') THEN 1 ELSE 0 END) as responded,
+            SUM(CASE WHEN status = 'interviewing' THEN 1 ELSE 0 END) as interviewing
+        FROM jobs
+        WHERE tier IN ('tier1', 'tier2')
+        GROUP BY tier",
+    )
+    .fetch_all(pool.inner())
+    .await
+    .map_err(|e| format!("Failed to get tier comparison: {e}"))?;
 
-        let responded: i32 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM jobs WHERE tier = ? AND applied_at IS NOT NULL AND status NOT IN ('saved', 'applied')",
-        )
-        .bind(tier)
-        .fetch_one(pool)
-        .await
-        .map_err(|e| format!("Failed to get tier stats: {e}"))?;
-
-        let interviewing: i32 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM jobs WHERE tier = ? AND status = 'interviewing'",
-        )
-        .bind(tier)
-        .fetch_one(pool)
-        .await
-        .map_err(|e| format!("Failed to get tier stats: {e}"))?;
-
+    fn make_stats(applied: i32, responded: i32, interviewing: i32) -> TierStats {
         let response_rate = if applied > 0 {
             responded as f64 / applied as f64
         } else {
             0.0
         };
-
-        Ok(TierStats {
-            applied,
-            responded,
-            interviewing,
-            response_rate,
-        })
+        TierStats { applied, responded, interviewing, response_rate }
     }
 
-    let tier1 = tier_stats(pool.inner(), "tier1").await?;
-    let tier2 = tier_stats(pool.inner(), "tier2").await?;
+    let mut tier1 = make_stats(0, 0, 0);
+    let mut tier2 = make_stats(0, 0, 0);
+
+    for (tier, applied, responded, interviewing) in rows {
+        match tier.as_str() {
+            "tier1" => tier1 = make_stats(applied, responded, interviewing),
+            "tier2" => tier2 = make_stats(applied, responded, interviewing),
+            _ => {}
+        }
+    }
 
     Ok(TierComparison { tier1, tier2 })
 }

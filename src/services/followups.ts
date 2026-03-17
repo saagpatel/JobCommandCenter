@@ -21,6 +21,7 @@ export function useFollowups(status?: string) {
       const result = await commands.listFollowups(status ?? null)
       return unwrapResult(result)
     },
+    staleTime: 30_000,
   })
 }
 
@@ -33,6 +34,7 @@ export function useFollowupsForJob(jobId: string | null) {
       return unwrapResult(result)
     },
     enabled: !!jobId,
+    staleTime: 30_000,
   })
 }
 

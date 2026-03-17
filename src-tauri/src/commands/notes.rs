@@ -2,6 +2,7 @@ use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager};
 
 use crate::types::{CreateNoteInput, Note, UpdateNoteInput};
+use crate::utils::maybe_set;
 
 const NOTE_COLUMNS: &str = "id, job_id, note_type, title, content, created_at, updated_at";
 
@@ -78,17 +79,8 @@ pub async fn update_note(app: AppHandle, id: String, input: UpdateNoteInput) -> 
     let mut set_clauses: Vec<String> = Vec::new();
     let mut values: Vec<String> = Vec::new();
 
-    macro_rules! maybe_set {
-        ($field:ident, $col:expr) => {
-            if let Some(ref val) = input.$field {
-                set_clauses.push(format!("{} = ?", $col));
-                values.push(val.clone());
-            }
-        };
-    }
-
-    maybe_set!(title, "title");
-    maybe_set!(content, "content");
+    maybe_set!(input, set_clauses, values, title, "title");
+    maybe_set!(input, set_clauses, values, content, "content");
 
     if set_clauses.is_empty() {
         return sqlx::query_as::<_, Note>(

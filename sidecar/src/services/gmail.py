@@ -29,8 +29,13 @@ class GmailService:
 
         creds = Credentials.from_authorized_user_file(str(self._TOKEN_PATH), self._SCOPES)
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-            self._TOKEN_PATH.write_text(creds.to_json())
+            try:
+                creds.refresh(Request())
+                self._TOKEN_PATH.write_text(creds.to_json())
+            except Exception:
+                logger.warning("Gmail token refresh failed, removing stale token")
+                self._TOKEN_PATH.unlink(missing_ok=True)
+                return None
         return creds if creds and creds.valid else None
 
     def _build_service(self):
@@ -64,7 +69,7 @@ class GmailService:
             profile = service.users().getProfile(userId="me").execute()
             return profile.get("emailAddress", "")
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         email = await loop.run_in_executor(None, _do_auth)
         self._service = None  # Reset cached service
         return {"authorized": True, "email": email}
@@ -84,7 +89,7 @@ class GmailService:
             except Exception:
                 return {"authorized": False, "email": None}
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, _check)
 
     async def send_email(
@@ -115,7 +120,7 @@ class GmailService:
                 "thread_id": result.get("threadId", ""),
             }
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, _send)
 
     async def disconnect(self) -> dict:

@@ -19,6 +19,7 @@ export function useNotesForJob(jobId: string | null) {
       return unwrapResult(result)
     },
     enabled: !!jobId,
+    staleTime: 30_000,
   })
 }
 
@@ -31,6 +32,7 @@ export function useNote(id: string | null) {
       return unwrapResult(result)
     },
     enabled: !!id,
+    staleTime: 30_000,
   })
 }
 

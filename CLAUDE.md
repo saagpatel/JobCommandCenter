@@ -162,7 +162,7 @@ job-command-center/
 - **File naming:** kebab-case for files, PascalCase for components, camelCase for hooks/utils
 - **Git commits:** `feat(tracker): add kanban drag-drop` / `fix(sidecar): handle Ashby rate limit`
 
-## Current Phase — v1.0 Feature Complete
+## Current Phase — v1.0 Polished, v1.1 Backlog Documented
 
 **Phase 0: Foundation** (target: Week 1-2)
 
@@ -206,6 +206,22 @@ job-command-center/
 **Note:** Session 10 (final): Notes CRUD (5 Rust commands), Analytics (7 Rust commands: applications by week, pipeline funnel, response rate, avg days to response, submissions by adapter, tier comparison, sidebar counts). Interview Prep view with AI brief generation via sidecar POST /ai/interview-prep, markdown rendering. Analytics dashboard with stat cards, stacked bar chart (recharts), pipeline funnel bars, ATS submission bars, tier comparison. Sidebar badges (followups due, prep needed) with 30s polling. Keyboard shortcuts Cmd+1-6 for view switching (sidebar toggles moved to Cmd+[/]). Auto-create interview_prep note on status→"interviewing".
 
 **Post-v1.0 Backlog:** Lever adapter, Gmail inbox scanning, bulk LinkedIn import, Chrome extension, parallel Playwright sessions.
+
+## v1.1 Backlog
+
+| #   | Description                                                                                                                                                                                        | Category     | Effort | Impact |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ------ | ------ |
+| 11  | **Migration version tracking** — current system runs ALL migrations on every launch; no `ALTER TABLE` path for v1.1 schema changes. Add a `_schema_version` table with sequential version numbers. | Architecture | medium | high   |
+| 12  | **Shared field mapping utility** — profile→form field heuristic logic duplicated across 7 adapters. Extract a `FieldMapper` class with adapter-specific overrides.                                 | Architecture | large  | medium |
+| 13  | **"Today" dashboard view** — landing page showing: due follow-ups, jobs awaiting submission, upcoming interviews, recent activity. Currently opens to Kanban.                                      | UX           | large  | high   |
+| 14  | **URL auto-detect on Add Job** — paste an ATS URL, auto-detect company/role/ATS type from Greenhouse/Ashby/LinkedIn URL patterns (parsers already exist in adapters).                              | UX           | medium | high   |
+| 15  | **Tracker search/filter** — filter by company name, ATS, tier, date range beyond just status.                                                                                                      | QoL          | medium | high   |
+| 16  | **Bulk actions** — select multiple jobs → bulk archive, delete, change status.                                                                                                                     | QoL          | medium | medium |
+| 17  | **CSV export** — export job search data + submission history.                                                                                                                                      | QoL          | small  | medium |
+| 18  | **Duplicate URL detection** — warn when adding a job with same `apply_url` as existing one.                                                                                                        | QoL          | small  | medium |
+| 19  | **Submission retry** — one-click retry from submission history for failed submissions.                                                                                                             | QoL          | medium | medium |
+| 20  | **macOS notification for due follow-ups** — tauri-plugin-notification fires when follow-up is due today (check on app launch + periodic).                                                          | QoL          | small  | medium |
+| 21  | **Sidecar port conflict diagnostic** — if port 9876 is in use, user sees generic "failed to become healthy" with no actionable message.                                                            | UX           | small  | medium |
 
 ## Key Decisions Made
 

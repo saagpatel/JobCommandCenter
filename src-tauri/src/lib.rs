@@ -123,6 +123,8 @@ const MIGRATIONS: &[&str] = &[
     );",
     "CREATE INDEX IF NOT EXISTS idx_followups_job_id ON followups(job_id);",
     "CREATE INDEX IF NOT EXISTS idx_followups_status_date ON followups(status, scheduled_date);",
+    // Migration 7: Add follow_up_days to profile
+    "ALTER TABLE profile ADD COLUMN follow_up_days INTEGER NOT NULL DEFAULT 7;",
 ];
 
 /// Application entry point. Sets up all plugins and initializes the app.
@@ -239,10 +241,19 @@ pub fn run() {
 
                 // Run migrations
                 for sql in MIGRATIONS {
-                    sqlx::query(sql)
-                        .execute(&pool)
-                        .await
-                        .map_err(|e| format!("Migration failed: {e}"))?;
+                    let result = sqlx::query(sql).execute(&pool).await;
+                    match result {
+                        Ok(_) => {}
+                        Err(e) => {
+                            let msg = e.to_string();
+                            // ALTER TABLE ADD COLUMN fails if column already exists — safe to skip
+                            if msg.contains("duplicate column name") {
+                                log::debug!("Migration skipped (column exists): {msg}");
+                            } else {
+                                return Err(format!("Migration failed: {e}"));
+                            }
+                        }
+                    }
                 }
                 log::info!("Database migrations complete");
 

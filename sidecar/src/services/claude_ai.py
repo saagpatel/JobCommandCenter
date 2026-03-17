@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 
 import anthropic
@@ -10,6 +11,9 @@ from src.api.models import ApplicantProfile, JobListing
 from src.utils.credentials import get_credential
 
 logger = structlog.get_logger(__name__)
+
+_DEFAULT_MODEL = "claude-sonnet-4-6"
+_MODEL = os.environ.get("JCC_CLAUDE_MODEL", _DEFAULT_MODEL)
 
 
 class ClaudeAIService:
@@ -87,7 +91,7 @@ class ClaudeAIService:
         logger.info("requesting field mapping from Claude", question_count=len(questions))
 
         response = await client.messages.create(
-            model="claude-sonnet-4-6",
+            model=_MODEL,
             max_tokens=1024,
             system=system_prompt,
             messages=[{"role": "user", "content": user_message}],
@@ -127,7 +131,7 @@ class ClaudeAIService:
         logger.info("requesting followup draft from Claude", company=company, role=role)
 
         response = await client.messages.create(
-            model="claude-sonnet-4-6",
+            model=_MODEL,
             max_tokens=500,
             system=system_prompt,
             messages=[{"role": "user", "content": context}],
@@ -175,7 +179,7 @@ class ClaudeAIService:
         logger.info("requesting interview prep from Claude", company=company, role=role)
 
         response = await client.messages.create(
-            model="claude-sonnet-4-6",
+            model=_MODEL,
             max_tokens=2000,
             system=system_prompt,
             messages=[{"role": "user", "content": context}],

@@ -432,7 +432,7 @@ export type Job = { id: string; company: string; role: string; ats: string; appl
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
 export type Note = { id: string; job_id: string; note_type: string; title: string; content: string; created_at: string; updated_at: string }
 export type PipelineFunnel = { saved: number; applied: number; interviewing: number; offer: number; rejected: number }
-export type Profile = { id: number; first_name: string; last_name: string; email: string; phone: string; linkedin_url: string; location: string; authorized_to_work: boolean; requires_sponsorship: boolean; preferred_name: string | null; base_resume_path: string | null; updated_at: string }
+export type Profile = { id: number; first_name: string; last_name: string; email: string; phone: string; linkedin_url: string; location: string; authorized_to_work: boolean; requires_sponsorship: boolean; preferred_name: string | null; base_resume_path: string | null; follow_up_days: number; updated_at: string }
 /**
  * Error types for recovery operations (typed for frontend matching)
  */
@@ -465,7 +465,7 @@ export type TierStats = { applied: number; responded: number; interviewing: numb
 export type UpdateFollowupInput = { draft_subject: string | null; draft_body: string | null; status: string | null; scheduled_date: string | null; sent_at: string | null; gmail_message_id: string | null; recipient_email: string | null }
 export type UpdateJobInput = { company: string | null; role: string | null; ats: string | null; apply_url: string | null; status: string | null; tier: string | null; job_posting_id: string | null; board_token: string | null; source: string | null; resume_path: string | null; cover_letter_path: string | null; custom_fields: string | null; notes: string | null; applied_at: string | null; follow_up_date: string | null; response_date: string | null; salary_range: string | null; location: string | null; jd_url: string | null }
 export type UpdateNoteInput = { title: string | null; content: string | null }
-export type UpsertProfileInput = { first_name: string; last_name: string; email: string; phone: string; linkedin_url: string; location: string | null; authorized_to_work: boolean | null; requires_sponsorship: boolean | null; preferred_name: string | null; base_resume_path: string | null }
+export type UpsertProfileInput = { first_name: string; last_name: string; email: string; phone: string; linkedin_url: string; location: string | null; authorized_to_work: boolean | null; requires_sponsorship: boolean | null; preferred_name: string | null; base_resume_path: string | null; follow_up_days: number | null }
 export type WeeklyApplications = { week: string; tier1_count: number; tier2_count: number }
 
 /** tauri-specta globals **/

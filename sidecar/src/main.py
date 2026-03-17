@@ -6,6 +6,8 @@ import time
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
+import os
+
 import structlog
 import uvicorn
 from fastapi import FastAPI
@@ -17,7 +19,7 @@ from src.api.routes import router
 logger = structlog.get_logger(__name__)
 
 _HOST = "127.0.0.1"
-_PORT = 9876
+_PORT = int(os.environ.get("JCC_SIDECAR_PORT", "9876"))
 _ALLOWED_ORIGINS = [
     "http://localhost:1420",
     "tauri://localhost",

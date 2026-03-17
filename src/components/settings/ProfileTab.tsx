@@ -26,6 +26,7 @@ export function ProfileTab() {
     requires_sponsorship: false,
     preferred_name: null,
     base_resume_path: null,
+    follow_up_days: null,
   })
 
   useEffect(() => {
@@ -41,6 +42,7 @@ export function ProfileTab() {
         requires_sponsorship: profile.requires_sponsorship,
         preferred_name: profile.preferred_name,
         base_resume_path: profile.base_resume_path,
+        follow_up_days: profile.follow_up_days,
       })
     }
   }, [profile])
@@ -182,6 +184,24 @@ export function ProfileTab() {
             Requires sponsorship
           </Label>
         </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="follow_up_days">Follow-up Interval (days)</Label>
+        <Input
+          id="follow_up_days"
+          type="number"
+          min={1}
+          max={90}
+          value={form.follow_up_days ?? 7}
+          onChange={e => {
+            const val = parseInt(e.target.value, 10)
+            updateField('follow_up_days', Number.isNaN(val) ? 7 : val)
+          }}
+        />
+        <p className="text-xs text-muted-foreground">
+          Days after applying before a follow-up is auto-created
+        </p>
       </div>
 
       <div className="space-y-1.5">

@@ -170,6 +170,7 @@ pub struct Profile {
     pub requires_sponsorship: bool,
     pub preferred_name: Option<String>,
     pub base_resume_path: Option<String>,
+    pub follow_up_days: i32,
     pub updated_at: String,
 }
 
@@ -185,6 +186,7 @@ pub struct UpsertProfileInput {
     pub requires_sponsorship: Option<bool>,
     pub preferred_name: Option<String>,
     pub base_resume_path: Option<String>,
+    pub follow_up_days: Option<i32>,
 }
 
 // ============================================================================
