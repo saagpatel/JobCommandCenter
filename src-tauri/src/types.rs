@@ -188,6 +188,42 @@ pub struct UpsertProfileInput {
 }
 
 // ============================================================================
+// Followups
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type, FromRow)]
+pub struct Followup {
+    pub id: String,
+    pub job_id: String,
+    pub draft_subject: Option<String>,
+    pub draft_body: Option<String>,
+    pub status: String,
+    pub scheduled_date: String,
+    pub sent_at: Option<String>,
+    pub gmail_message_id: Option<String>,
+    pub recipient_email: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct CreateFollowupInput {
+    pub job_id: String,
+    pub scheduled_date: String,
+    pub recipient_email: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct UpdateFollowupInput {
+    pub draft_subject: Option<String>,
+    pub draft_body: Option<String>,
+    pub status: Option<String>,
+    pub scheduled_date: Option<String>,
+    pub sent_at: Option<String>,
+    pub gmail_message_id: Option<String>,
+    pub recipient_email: Option<String>,
+}
+
+// ============================================================================
 // Sidecar
 // ============================================================================
 

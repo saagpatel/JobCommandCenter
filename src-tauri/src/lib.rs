@@ -107,6 +107,22 @@ const MIGRATIONS: &[&str] = &[
         base_resume_path TEXT,
         updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );",
+    // Migration 6: Recreate followups table with nullable drafts and recipient_email
+    "DROP TABLE IF EXISTS followups;",
+    "CREATE TABLE IF NOT EXISTS followups (
+        id TEXT PRIMARY KEY,
+        job_id TEXT NOT NULL REFERENCES jobs(id),
+        draft_subject TEXT,
+        draft_body TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        scheduled_date TEXT NOT NULL,
+        sent_at TEXT,
+        gmail_message_id TEXT,
+        recipient_email TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );",
+    "CREATE INDEX IF NOT EXISTS idx_followups_job_id ON followups(job_id);",
+    "CREATE INDEX IF NOT EXISTS idx_followups_status_date ON followups(status, scheduled_date);",
 ];
 
 /// Application entry point. Sets up all plugins and initializes the app.

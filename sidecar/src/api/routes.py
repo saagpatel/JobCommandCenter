@@ -7,9 +7,16 @@ from starlette.responses import StreamingResponse
 
 from .models import (
     BatchSubmissionRequest,
+    DraftFollowupRequest,
+    DraftFollowupResponse,
     FieldMappingRequest,
     FieldMappingResponse,
+    GmailSendRequest,
+    GmailSendResponse,
+    GmailStatusResponse,
     HealthResponse,
+    InterviewPrepRequest,
+    InterviewPrepResponse,
     PlatformLoginResponse,
     PlatformSessionStatus,
     SubmissionRequest,
@@ -132,3 +139,59 @@ async def ai_map_fields(request: Request, body: FieldMappingRequest) -> FieldMap
     mapped = await claude.map_fields(body.questions, body.profile, body.job)
     unmapped = [str(q.get("label", "")) for q in body.questions if str(q.get("label", "")) not in mapped]
     return FieldMappingResponse(mapped_answers=mapped, unmapped=unmapped)
+
+
+@router.post("/gmail/auth", response_model=GmailStatusResponse)
+async def gmail_auth(request: Request) -> GmailStatusResponse:
+    try:
+        result = await request.app.state.gmail.authorize()
+        return GmailStatusResponse(**result)
+    except FileNotFoundError as e:
+        return GmailStatusResponse(authorized=False, email=str(e))
+    except Exception:
+        return GmailStatusResponse(authorized=False, email=None)
+
+
+@router.get("/gmail/status", response_model=GmailStatusResponse)
+async def gmail_status(request: Request) -> GmailStatusResponse:
+    result = await request.app.state.gmail.check_status()
+    return GmailStatusResponse(**result)
+
+
+@router.post("/gmail/send", response_model=GmailSendResponse)
+async def gmail_send(request: Request, body: GmailSendRequest) -> GmailSendResponse:
+    result = await request.app.state.gmail.send_email(
+        to=body.to,
+        subject=body.subject,
+        body_html=body.body_html,
+        reply_to=body.reply_to,
+    )
+    return GmailSendResponse(**result)
+
+
+@router.post("/gmail/disconnect", response_model=GmailStatusResponse)
+async def gmail_disconnect(request: Request) -> GmailStatusResponse:
+    await request.app.state.gmail.disconnect()
+    return GmailStatusResponse(authorized=False, email=None)
+
+
+@router.post("/ai/draft-followup", response_model=DraftFollowupResponse)
+async def ai_draft_followup(request: Request, body: DraftFollowupRequest) -> DraftFollowupResponse:
+    result = await request.app.state.claude.draft_followup(
+        company=body.company,
+        role=body.role,
+        applied_date=body.applied_date,
+        notes=body.notes,
+    )
+    return DraftFollowupResponse(**result)
+
+
+@router.post("/ai/interview-prep", response_model=InterviewPrepResponse)
+async def ai_interview_prep(request: Request, body: InterviewPrepRequest) -> InterviewPrepResponse:
+    brief = await request.app.state.claude.interview_prep(
+        company=body.company,
+        role=body.role,
+        jd_text=body.jd_text,
+        notes=body.notes,
+    )
+    return InterviewPrepResponse(brief=brief)

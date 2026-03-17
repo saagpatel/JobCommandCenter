@@ -192,11 +192,13 @@ job-command-center/
 
 **Note:** Indeed adapter requires login session (like LinkedIn). Gem does not require login. Workday returns `manual_required` for sign-in pages and CAPTCHAs. Generic adapter uses heuristic label→input matching with Claude AI fallback for unmapped fields.
 
-**Phase 3: Follow-up & Intelligence** (next)
+**Phase 3: Follow-up & Intelligence**
 
-- [ ] Follow-up email system with Gmail API + Claude AI drafting (Session 9)
+- [x] Follow-up email system with Gmail API + Claude AI drafting (Session 9)
 - [ ] Interview prep brief generation (Session 10)
 - [ ] Pipeline analytics dashboard (Session 11)
+
+**Note:** Session 9 built the full follow-up pipeline: Rust CRUD (5 commands + auto-create on status→"applied"), Python GmailService (OAuth2 InstalledAppFlow at ~/.jcc/gmail/), ClaudeAIService.draft_followup + interview_prep (interview_prep endpoint pre-built for Session 10), Frontend FollowupManager with filter tabs + expandable rows + AI draft generation + Gmail send. Gmail requires user to place client_secrets.json at ~/.jcc/gmail/client_secrets.json before connecting. User always reviews draft before sending — never auto-send.
 
 ## Key Decisions Made
 

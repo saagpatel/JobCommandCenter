@@ -4,13 +4,17 @@ import { Input } from '@/components/ui/input'
 
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { toast } from 'sonner'
 import {
   useCredential,
   useStoreCredential,
   useDeleteCredential,
 } from '@/services/credentials'
-import { Key, Mail, Trash2 } from 'lucide-react'
+import {
+  useGmailStatus,
+  useGmailAuth,
+  useGmailDisconnect,
+} from '@/services/gmail'
+import { Key, Mail, Trash2, Loader2 } from 'lucide-react'
 
 const ANTHROPIC_KEY = 'anthropic_api_key'
 
@@ -88,24 +92,79 @@ export function CredentialsTab() {
 
       <Separator />
 
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Mail className="h-5 w-5 text-muted-foreground" />
-          <h3 className="text-lg font-semibold">Gmail</h3>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Connect your Gmail account for automated follow-up emails.
-        </p>
+      <GmailSection />
+    </div>
+  )
+}
+
+function GmailSection() {
+  const { data: gmailStatus, isLoading } = useGmailStatus()
+  const gmailAuth = useGmailAuth()
+  const gmailDisconnect = useGmailDisconnect()
+
+  const isConnected = gmailStatus?.authorized === true
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Mail className="h-5 w-5 text-muted-foreground" />
+        <h3 className="text-lg font-semibold">Gmail</h3>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Connect your Gmail account to send follow-up emails. Requires a Google
+        OAuth client_secrets.json file.
+      </p>
+
+      {isLoading ? (
+        <div className="h-10 w-64 animate-pulse rounded bg-muted" />
+      ) : isConnected ? (
         <div className="flex items-center gap-3">
-          <Badge variant="outline">Not Connected</Badge>
+          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">
+            Connected
+          </Badge>
+          {gmailStatus.email && (
+            <span className="text-sm text-muted-foreground">
+              {gmailStatus.email}
+            </span>
+          )}
           <Button
             variant="outline"
-            onClick={() => toast.info('Gmail OAuth coming in a future session')}
+            size="sm"
+            onClick={() => gmailDisconnect.mutate()}
+            disabled={gmailDisconnect.isPending}
           >
-            Connect Gmail
+            <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+            Disconnect
           </Button>
         </div>
-      </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <Badge variant="outline">Not Connected</Badge>
+            <Button
+              variant="outline"
+              onClick={() => gmailAuth.mutate()}
+              disabled={gmailAuth.isPending}
+            >
+              {gmailAuth.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                'Connect Gmail'
+              )}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Place your Google OAuth client_secrets.json at{' '}
+            <code className="rounded bg-muted px-1.5 py-0.5">
+              ~/.jcc/gmail/client_secrets.json
+            </code>{' '}
+            before connecting.
+          </p>
+        </div>
+      )}
     </div>
   )
 }

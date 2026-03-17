@@ -172,6 +172,46 @@ async deleteJob(id: string) : Promise<Result<boolean, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async listFollowups(status: string | null) : Promise<Result<Followup[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_followups", { status }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async listFollowupsForJob(jobId: string) : Promise<Result<Followup[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_followups_for_job", { jobId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async createFollowup(input: CreateFollowupInput) : Promise<Result<Followup, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("create_followup", { input }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async updateFollowup(id: string, input: UpdateFollowupInput) : Promise<Result<Followup, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_followup", { id, input }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async deleteFollowup(id: string) : Promise<Result<boolean, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_followup", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getProfile() : Promise<Result<Profile | null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_profile") };
@@ -287,7 +327,9 @@ quick_pane_shortcut: string | null;
  * If None, uses system locale detection
  */
 language: string | null }
+export type CreateFollowupInput = { job_id: string; scheduled_date: string; recipient_email: string | null }
 export type CreateJobInput = { company: string; role: string; ats: string; apply_url: string; status: string | null; tier: string | null; job_posting_id: string | null; board_token: string | null; source: string | null; resume_path: string | null; cover_letter_path: string | null; custom_fields: string | null; notes: string | null; salary_range: string | null; location: string | null; jd_url: string | null }
+export type Followup = { id: string; job_id: string; draft_subject: string | null; draft_body: string | null; status: string; scheduled_date: string; sent_at: string | null; gmail_message_id: string | null; recipient_email: string | null; created_at: string }
 export type Job = { id: string; company: string; role: string; ats: string; apply_url: string; job_posting_id: string | null; board_token: string | null; status: string; tier: string; source: string | null; resume_path: string | null; cover_letter_path: string | null; custom_fields: string | null; notes: string | null; applied_at: string | null; follow_up_date: string | null; response_date: string | null; salary_range: string | null; location: string | null; jd_url: string | null; created_at: string; updated_at: string }
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
 export type Profile = { id: number; first_name: string; last_name: string; email: string; phone: string; linkedin_url: string; location: string; authorized_to_work: boolean; requires_sponsorship: boolean; preferred_name: string | null; base_resume_path: string | null; updated_at: string }
@@ -317,6 +359,7 @@ export type RecoveryError =
 { type: "ParseError"; message: string }
 export type SidecarState = "Starting" | "Healthy" | "Unhealthy" | "Stopped" | "Failed"
 export type SidecarStatus = { state: SidecarState; pid: number | null; restart_count: number; uptime_seconds: number | null }
+export type UpdateFollowupInput = { draft_subject: string | null; draft_body: string | null; status: string | null; scheduled_date: string | null; sent_at: string | null; gmail_message_id: string | null; recipient_email: string | null }
 export type UpdateJobInput = { company: string | null; role: string | null; ats: string | null; apply_url: string | null; status: string | null; tier: string | null; job_posting_id: string | null; board_token: string | null; source: string | null; resume_path: string | null; cover_letter_path: string | null; custom_fields: string | null; notes: string | null; applied_at: string | null; follow_up_date: string | null; response_date: string | null; salary_range: string | null; location: string | null; jd_url: string | null }
 export type UpsertProfileInput = { first_name: string; last_name: string; email: string; phone: string; linkedin_url: string; location: string | null; authorized_to_work: boolean | null; requires_sponsorship: boolean | null; preferred_name: string | null; base_resume_path: string | null }
 

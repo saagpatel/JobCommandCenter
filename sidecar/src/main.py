@@ -60,6 +60,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.playwright = pw_mgr
     app.state.claude = ClaudeAIService()
 
+    from src.services.gmail import GmailService
+    app.state.gmail = GmailService()
+
     from src.adapters.linkedin import LinkedInAdapter
     registry.register("linkedin", LinkedInAdapter(pw_manager=pw_mgr, claude_service=app.state.claude))
 

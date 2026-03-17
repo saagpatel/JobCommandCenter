@@ -160,6 +160,28 @@ pub async fn update_job(
         return Err("Job not found".to_string());
     }
 
+    // Auto-create followup when status changes to "applied"
+    if input.status.as_deref() == Some("applied") {
+        let existing: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM followups WHERE job_id = ? AND status IN ('pending', 'draft_ready')"
+        )
+        .bind(&id)
+        .fetch_one(pool.inner())
+        .await
+        .unwrap_or(0);
+
+        if existing == 0 {
+            let followup_id = uuid::Uuid::now_v7().to_string();
+            let _ = sqlx::query(
+                "INSERT INTO followups (id, job_id, status, scheduled_date) VALUES (?, ?, 'pending', datetime('now', '+7 days'))"
+            )
+            .bind(&followup_id)
+            .bind(&id)
+            .execute(pool.inner())
+            .await;
+        }
+    }
+
     get_job(app, id)
         .await?
         .ok_or_else(|| "Job was updated but could not be retrieved".to_string())

@@ -102,6 +102,11 @@ vi.mock('@/lib/tauri-bindings', () => ({
     deleteCredential: vi.fn().mockResolvedValue({ status: 'ok', data: false }),
     validateFilePath: vi.fn().mockResolvedValue({ status: 'ok', data: true }),
     revealInFinder: vi.fn().mockResolvedValue({ status: 'ok', data: null }),
+    listFollowups: vi.fn().mockResolvedValue({ status: 'ok', data: [] }),
+    listFollowupsForJob: vi.fn().mockResolvedValue({ status: 'ok', data: [] }),
+    createFollowup: vi.fn().mockResolvedValue({ status: 'ok', data: {} }),
+    updateFollowup: vi.fn().mockResolvedValue({ status: 'ok', data: {} }),
+    deleteFollowup: vi.fn().mockResolvedValue({ status: 'ok', data: true }),
   },
   unwrapResult: vi.fn((result: { status: string; data?: unknown }) => {
     if (result.status === 'ok') return result.data

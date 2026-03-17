@@ -5,6 +5,7 @@
 
 pub mod credentials;
 pub mod files;
+pub mod followups;
 pub mod jobs;
 pub mod notifications;
 pub mod preferences;

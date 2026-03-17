@@ -29,11 +29,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { ExternalLink, Trash2, FolderOpen, Eye } from 'lucide-react'
+import {
+  ExternalLink,
+  Trash2,
+  FolderOpen,
+  Eye,
+  CalendarClock,
+  Plus,
+} from 'lucide-react'
 import { open } from '@tauri-apps/plugin-dialog'
 import { toast } from 'sonner'
 import { useUIStore } from '@/store/ui-store'
 import { useJob, useUpdateJob, useDeleteJob } from '@/services/jobs'
+import { useFollowupsForJob, useCreateFollowup } from '@/services/followups'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { commands } from '@/lib/tauri-bindings'
 import { logger } from '@/lib/logger'
@@ -299,10 +307,16 @@ export function JobDetailPanel() {
                       variant="outline"
                       size="icon"
                       onClick={async () => {
-                        const result = await commands.revealInFinder(job.resume_path!)
+                        const result = await commands.revealInFinder(
+                          job.resume_path!
+                        )
                         if (result.status === 'error') {
-                          logger.error('Failed to reveal resume in Finder', { error: result.error })
-                          toast.error('Could not open Finder', { description: result.error })
+                          logger.error('Failed to reveal resume in Finder', {
+                            error: result.error,
+                          })
+                          toast.error('Could not open Finder', {
+                            description: result.error,
+                          })
                         }
                       }}
                       title="Reveal in Finder"
@@ -347,10 +361,17 @@ export function JobDetailPanel() {
                       variant="outline"
                       size="icon"
                       onClick={async () => {
-                        const result = await commands.revealInFinder(job.cover_letter_path!)
+                        const result = await commands.revealInFinder(
+                          job.cover_letter_path!
+                        )
                         if (result.status === 'error') {
-                          logger.error('Failed to reveal cover letter in Finder', { error: result.error })
-                          toast.error('Could not open Finder', { description: result.error })
+                          logger.error(
+                            'Failed to reveal cover letter in Finder',
+                            { error: result.error }
+                          )
+                          toast.error('Could not open Finder', {
+                            description: result.error,
+                          })
                         }
                       }}
                       title="Reveal in Finder"
@@ -386,6 +407,10 @@ export function JobDetailPanel() {
 
               <Separator />
 
+              <FollowupsSection jobId={job.id} />
+
+              <Separator />
+
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" size="sm" className="w-full">
@@ -418,5 +443,67 @@ export function JobDetailPanel() {
         )}
       </SheetContent>
     </Sheet>
+  )
+}
+
+function FollowupsSection({ jobId }: { jobId: string }) {
+  const { data: followups } = useFollowupsForJob(jobId)
+  const createFollowup = useCreateFollowup()
+  const setActiveView = useUIStore(state => state.setActiveView)
+
+  const activeFollowups = followups?.filter(f => f.status !== 'skipped')
+
+  function handleCreate() {
+    const scheduledDate = new Date()
+    scheduledDate.setDate(scheduledDate.getDate() + 7)
+    createFollowup.mutate({
+      job_id: jobId,
+      scheduled_date: scheduledDate.toISOString().slice(0, 10),
+      recipient_email: null,
+    })
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label className="flex items-center gap-1.5 text-muted-foreground">
+          <CalendarClock className="h-3.5 w-3.5" />
+          Follow-ups
+        </Label>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-xs"
+          onClick={handleCreate}
+          disabled={createFollowup.isPending}
+        >
+          <Plus className="mr-1 h-3 w-3" />
+          Add
+        </Button>
+      </div>
+      {!activeFollowups || activeFollowups.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No follow-ups yet.</p>
+      ) : (
+        <div className="space-y-1.5">
+          {activeFollowups.map(f => (
+            <button
+              key={f.id}
+              onClick={() => setActiveView('followups')}
+              className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50"
+            >
+              <span className="text-muted-foreground">
+                {f.scheduled_date.split('T')[0]}
+              </span>
+              <Badge
+                variant={f.status === 'sent' ? 'default' : 'outline'}
+                className="text-xs"
+              >
+                {f.status === 'draft_ready' ? 'Draft' : f.status}
+              </Badge>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

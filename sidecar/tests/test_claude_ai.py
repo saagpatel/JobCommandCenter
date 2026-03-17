@@ -100,3 +100,92 @@ class TestClaudeAIService:
             _make_job(),
         )
         assert result == {"Q1": "answer1"}
+
+    async def test_draft_followup_returns_subject_body(self) -> None:
+        service = ClaudeAIService()
+
+        mock_response = MagicMock()
+        mock_block = MagicMock()
+        mock_block.type = "text"
+        mock_block.text = json.dumps({
+            "subject": "Following up on Software Engineer application",
+            "body": "I hope this message finds you well. I wanted to follow up on my application."
+        })
+        mock_response.content = [mock_block]
+
+        mock_client = AsyncMock()
+        mock_client.messages.create = AsyncMock(return_value=mock_response)
+        service._client = mock_client
+
+        result = await service.draft_followup(
+            company="Acme Corp",
+            role="Software Engineer",
+            applied_date="2026-03-10",
+        )
+        assert "subject" in result
+        assert "body" in result
+        assert "Software Engineer" in result["subject"]
+
+    async def test_draft_followup_missing_api_key(self) -> None:
+        service = ClaudeAIService()
+
+        with patch("src.services.claude_ai.get_credential", return_value=None):
+            with pytest.raises(RuntimeError, match="Anthropic API key not found"):
+                await service.draft_followup(
+                    company="Acme Corp",
+                    role="Software Engineer",
+                    applied_date="2026-03-10",
+                )
+
+    async def test_draft_followup_handles_invalid_json(self) -> None:
+        service = ClaudeAIService()
+
+        mock_response = MagicMock()
+        mock_block = MagicMock()
+        mock_block.type = "text"
+        mock_block.text = "Here is a nice follow-up email for you."
+        mock_response.content = [mock_block]
+
+        mock_client = AsyncMock()
+        mock_client.messages.create = AsyncMock(return_value=mock_response)
+        service._client = mock_client
+
+        result = await service.draft_followup(
+            company="Acme Corp",
+            role="Software Engineer",
+            applied_date="2026-03-10",
+        )
+        assert "subject" in result
+        assert "body" in result
+        # Should use fallback subject
+        assert "Software Engineer" in result["subject"]
+
+    async def test_interview_prep_returns_markdown(self) -> None:
+        service = ClaudeAIService()
+
+        mock_response = MagicMock()
+        mock_block = MagicMock()
+        mock_block.type = "text"
+        mock_block.text = "## Company Overview\nAcme Corp is a tech company.\n## Recent News"
+        mock_response.content = [mock_block]
+
+        mock_client = AsyncMock()
+        mock_client.messages.create = AsyncMock(return_value=mock_response)
+        service._client = mock_client
+
+        result = await service.interview_prep(
+            company="Acme Corp",
+            role="Software Engineer",
+        )
+        assert "Company Overview" in result
+        assert isinstance(result, str)
+
+    async def test_interview_prep_missing_api_key(self) -> None:
+        service = ClaudeAIService()
+
+        with patch("src.services.claude_ai.get_credential", return_value=None):
+            with pytest.raises(RuntimeError, match="Anthropic API key not found"):
+                await service.interview_prep(
+                    company="Acme Corp",
+                    role="Software Engineer",
+                )

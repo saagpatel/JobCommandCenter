@@ -95,3 +95,43 @@ class FieldMappingRequest(BaseModel):
 class FieldMappingResponse(BaseModel):
     mapped_answers: dict[str, str]
     unmapped: list[str]
+
+
+class DraftFollowupRequest(BaseModel):
+    company: str
+    role: str
+    applied_date: str
+    notes: str | None = None
+
+
+class DraftFollowupResponse(BaseModel):
+    subject: str
+    body: str
+
+
+class InterviewPrepRequest(BaseModel):
+    company: str
+    role: str
+    jd_text: str | None = None
+    notes: str | None = None
+
+
+class InterviewPrepResponse(BaseModel):
+    brief: str
+
+
+class GmailSendRequest(BaseModel):
+    to: str
+    subject: str
+    body_html: str
+    reply_to: str | None = None
+
+
+class GmailSendResponse(BaseModel):
+    message_id: str
+    thread_id: str
+
+
+class GmailStatusResponse(BaseModel):
+    authorized: bool
+    email: str | None = None
