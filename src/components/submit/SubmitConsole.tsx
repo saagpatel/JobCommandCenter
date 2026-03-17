@@ -77,6 +77,30 @@ function ResultIcon({ status }: { status: SubmissionResult['status'] }) {
   }
 }
 
+const API_ADAPTERS = new Set(['ashby', 'greenhouse'])
+const BROWSER_ADAPTERS = new Set([
+  'linkedin',
+  'indeed',
+  'gem',
+  'workday',
+  'generic',
+])
+
+function adapterType(ats: string): 'api' | 'browser' {
+  return API_ADAPTERS.has(ats) ? 'api' : 'browser'
+}
+
+function formatStatus(status: SubmissionResult['status']): string {
+  switch (status) {
+    case 'dry_run':
+      return 'Dry run'
+    case 'manual_required':
+      return 'Manual Required'
+    default:
+      return status.charAt(0).toUpperCase() + status.slice(1)
+  }
+}
+
 function parseCustomFields(raw: string | null): Record<string, unknown> | null {
   if (!raw) return null
   try {
@@ -332,6 +356,24 @@ export function SubmitConsole() {
         </div>
       </div>
 
+      {/* Browser adapter notice */}
+      {(() => {
+        const browserJobs = selectedJobs.filter(j =>
+          BROWSER_ADAPTERS.has(j.ats)
+        )
+        if (browserJobs.length === 0) return null
+        const names = [
+          ...new Set(
+            browserJobs.map(j => j.ats.charAt(0).toUpperCase() + j.ats.slice(1))
+          ),
+        ]
+        return (
+          <div className="mx-4 mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+            Browser window will open for: {names.join(', ')}
+          </div>
+        )
+      })()}
+
       {/* Action Bar */}
       <div className="flex items-center justify-between border-t p-4">
         <span className="text-sm text-muted-foreground">
@@ -438,6 +480,17 @@ function JobPreviewCard({
             {job.company} — {job.role}
           </CardTitle>
           <div className="flex items-center gap-1.5 shrink-0">
+            <Badge
+              variant="outline"
+              className={cn(
+                'text-[10px]',
+                adapterType(job.ats) === 'api'
+                  ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
+                  : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300'
+              )}
+            >
+              {adapterType(job.ats) === 'api' ? 'API' : 'Browser'}
+            </Badge>
             <Badge variant="outline" className="text-[10px]">
               {job.ats}
             </Badge>
@@ -489,10 +542,7 @@ function JobPreviewCard({
                     : 'text-yellow-600 dark:text-yellow-400'
               )}
             >
-              {result.status === 'dry_run'
-                ? 'Dry run'
-                : result.status.charAt(0).toUpperCase() +
-                  result.status.slice(1)}
+              {formatStatus(result.status)}
             </span>
             <span>·</span>
             <span>{result.duration_seconds.toFixed(1)}s</span>

@@ -186,7 +186,17 @@ job-command-center/
 **Phase 2: Browser Automation Adapters**
 
 - [x] Playwright base service + LinkedIn Easy Apply adapter + Claude AI field mapping (Session 7)
-- [ ] Indeed + Gem + Workday + Generic adapters (Session 8)
+- [x] Indeed + Gem + Workday + Generic adapters (Session 8)
+
+**Phase 2 COMPLETE.**
+
+**Note:** Indeed adapter requires login session (like LinkedIn). Gem does not require login. Workday returns `manual_required` for sign-in pages and CAPTCHAs. Generic adapter uses heuristic label→input matching with Claude AI fallback for unmapped fields.
+
+**Phase 3: Follow-up & Intelligence** (next)
+
+- [ ] Follow-up email system with Gmail API + Claude AI drafting (Session 9)
+- [ ] Interview prep brief generation (Session 10)
+- [ ] Pipeline analytics dashboard (Session 11)
 
 ## Key Decisions Made
 

@@ -151,4 +151,61 @@ describe('SubmitConsole', () => {
       screen.getByText(/this action cannot be undone/i)
     ).toBeInTheDocument()
   })
+
+  it('shows API badge for API adapter jobs in preview', async () => {
+    const user = userEvent.setup()
+    const jobs = [
+      makeJob({ id: 'j1', company: 'Acme', role: 'Engineer', ats: 'ashby' }),
+    ]
+    setupDefaultMocks(jobs)
+    render(<SubmitConsole />)
+
+    const checkboxes = screen.getAllByRole('checkbox')
+    await user.click(checkboxes[0] as HTMLElement)
+
+    expect(screen.getByText('API')).toBeInTheDocument()
+  })
+
+  it('shows Browser badge for browser adapter jobs in preview', async () => {
+    const user = userEvent.setup()
+    const jobs = [
+      makeJob({
+        id: 'j1',
+        company: 'Acme',
+        role: 'Engineer',
+        ats: 'linkedin',
+        apply_url: 'https://linkedin.com/jobs/view/123',
+      }),
+    ]
+    setupDefaultMocks(jobs)
+    render(<SubmitConsole />)
+
+    const checkboxes = screen.getAllByRole('checkbox')
+    await user.click(checkboxes[0] as HTMLElement)
+
+    expect(screen.getByText('Browser')).toBeInTheDocument()
+  })
+
+  it('shows browser notice when browser adapter job is selected', async () => {
+    const user = userEvent.setup()
+    const jobs = [
+      makeJob({
+        id: 'j1',
+        company: 'Acme',
+        role: 'Engineer',
+        ats: 'linkedin',
+        apply_url: 'https://linkedin.com/jobs/view/123',
+      }),
+    ]
+    setupDefaultMocks(jobs)
+    render(<SubmitConsole />)
+
+    const checkboxes = screen.getAllByRole('checkbox')
+    await user.click(checkboxes[0] as HTMLElement)
+
+    expect(
+      screen.getByText(/browser window will open for/i)
+    ).toBeInTheDocument()
+    expect(screen.getByText(/Linkedin/)).toBeInTheDocument()
+  })
 })

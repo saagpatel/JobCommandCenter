@@ -63,6 +63,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from src.adapters.linkedin import LinkedInAdapter
     registry.register("linkedin", LinkedInAdapter(pw_manager=pw_mgr, claude_service=app.state.claude))
 
+    from src.adapters.indeed import IndeedAdapter
+    registry.register("indeed", IndeedAdapter(pw_manager=pw_mgr, claude_service=app.state.claude))
+
+    from src.adapters.gem import GemAdapter
+    registry.register("gem", GemAdapter(pw_manager=pw_mgr, claude_service=app.state.claude))
+
+    from src.adapters.workday import WorkdayAdapter
+    registry.register("workday", WorkdayAdapter(pw_manager=pw_mgr, claude_service=app.state.claude))
+
+    from src.adapters.generic import GenericAdapter
+    registry.register("generic", GenericAdapter(pw_manager=pw_mgr, claude_service=app.state.claude))
+
     app.state.registry = registry
     yield
     log.info("sidecar shutting down")
