@@ -302,19 +302,14 @@ pub struct SidebarCounts {
 // Sidecar
 // ============================================================================
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, Type, PartialEq)]
 pub enum SidecarState {
     Starting,
     Healthy,
     Unhealthy,
+    #[default]
     Stopped,
     Failed,
-}
-
-impl Default for SidecarState {
-    fn default() -> Self {
-        Self::Stopped
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -347,15 +342,6 @@ pub fn validate_filename(filename: &str) -> Result<(), String> {
         );
     }
 
-    Ok(())
-}
-
-/// Validates string input length (by character count, not bytes).
-pub fn validate_string_input(input: &str, max_len: usize, field_name: &str) -> Result<(), String> {
-    let char_count = input.chars().count();
-    if char_count > max_len {
-        return Err(format!("{field_name} too long (max {max_len} characters)"));
-    }
     Ok(())
 }
 

@@ -10,7 +10,6 @@ from src.api.models import ApplicantProfile, JobListing, SubmissionResult
 from src.services.claude_ai import ClaudeAIService
 from src.services.playwright_base import (
     PlaywrightManager,
-    click_button,
     fill_field,
     random_delay,
     screenshot_on_failure,
@@ -187,11 +186,11 @@ class LinkedInAdapter(BaseAdapter):
                             answer = str(job.custom_fields[label_text])
                             select_el = group.locator("select")
                             if await select_el.count() > 0:
-                                await select_option(page, f"select", answer)
+                                await select_option(page, "select", answer)
                             else:
                                 text_input = group.locator("input, textarea")
                                 if await text_input.count() > 0:
-                                    await fill_field(page, f"input, textarea", answer)
+                                    await fill_field(page, "input, textarea", answer)
                             fields_filled.append(label_text)
                             continue
 

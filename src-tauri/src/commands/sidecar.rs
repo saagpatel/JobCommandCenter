@@ -46,11 +46,7 @@ impl Default for SidecarManager {
 
 impl SidecarManager {
     fn status(&self) -> SidecarStatus {
-        let pid = self
-            .child
-            .as_ref()
-            .and_then(|c| c.id())
-            .map(|id| id as u32);
+        let pid = self.child.as_ref().and_then(|c| c.id());
 
         let uptime_seconds = self
             .started_at

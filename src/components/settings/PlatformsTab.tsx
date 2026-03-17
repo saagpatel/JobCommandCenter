@@ -5,8 +5,7 @@ import { Badge } from '@/components/ui/badge'
 
 import { toast } from 'sonner'
 import { Globe, Loader2 } from 'lucide-react'
-
-const SIDECAR_URL = 'http://127.0.0.1:9876'
+import { SIDECAR_URL } from '@/lib/sidecar'
 
 type ConnectionStatus = 'none' | 'active' | 'error'
 

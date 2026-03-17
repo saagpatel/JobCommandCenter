@@ -27,6 +27,8 @@ import type { Job, SidecarState } from '@/lib/tauri-bindings'
 import { useJobs, useUpdateJob } from '@/services/jobs'
 import { useProfile } from '@/services/profile'
 import { useSidecarStatus } from '@/services/sidecar'
+import { SIDECAR_URL } from '@/lib/sidecar'
+import { logger } from '@/lib/logger'
 
 interface SubmissionResult {
   job_id: string
@@ -197,7 +199,7 @@ export function SubmitConsole() {
     }
 
     try {
-      const response = await fetch('http://127.0.0.1:9876/submit/batch', {
+      const response = await fetch(`${SIDECAR_URL}/submit/batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -259,7 +261,9 @@ export function SubmitConsole() {
         }
       }
     } catch (err) {
-      console.error('Batch submission failed:', err)
+      logger.error('Batch submission failed', {
+        error: err instanceof Error ? err.message : String(err),
+      })
     } finally {
       setIsSubmitting(false)
     }

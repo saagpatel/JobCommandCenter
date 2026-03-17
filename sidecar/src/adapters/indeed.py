@@ -10,7 +10,6 @@ from src.api.models import ApplicantProfile, JobListing, SubmissionResult
 from src.services.claude_ai import ClaudeAIService
 from src.services.playwright_base import (
     PlaywrightManager,
-    click_button,
     fill_field,
     random_delay,
     screenshot_on_failure,

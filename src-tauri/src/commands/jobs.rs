@@ -229,14 +229,53 @@ pub async fn update_job(
 pub async fn delete_job(app: AppHandle, id: String) -> Result<bool, String> {
     let pool = app.state::<SqlitePool>();
 
+    // Use a transaction to delete child records first, then the job
+    let mut tx = pool.begin().await.map_err(|e| {
+        log::error!("Failed to begin transaction for delete_job {id}: {e}");
+        format!("Failed to delete job: {e}")
+    })?;
+
+    // Delete child records (no ON DELETE CASCADE in schema)
+    sqlx::query("DELETE FROM submissions WHERE job_id = ?")
+        .bind(&id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| {
+            log::error!("Failed to delete submissions for job {id}: {e}");
+            format!("Failed to delete job submissions: {e}")
+        })?;
+
+    sqlx::query("DELETE FROM followups WHERE job_id = ?")
+        .bind(&id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| {
+            log::error!("Failed to delete followups for job {id}: {e}");
+            format!("Failed to delete job followups: {e}")
+        })?;
+
+    sqlx::query("DELETE FROM notes WHERE job_id = ?")
+        .bind(&id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| {
+            log::error!("Failed to delete notes for job {id}: {e}");
+            format!("Failed to delete job notes: {e}")
+        })?;
+
     let result = sqlx::query("DELETE FROM jobs WHERE id = ?")
         .bind(&id)
-        .execute(pool.inner())
+        .execute(&mut *tx)
         .await
         .map_err(|e| {
             log::error!("Failed to delete job {id}: {e}");
             format!("Failed to delete job: {e}")
         })?;
+
+    tx.commit().await.map_err(|e| {
+        log::error!("Failed to commit delete_job transaction for {id}: {e}");
+        format!("Failed to delete job: {e}")
+    })?;
 
     Ok(result.rows_affected() > 0)
 }

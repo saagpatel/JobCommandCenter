@@ -12,7 +12,6 @@ from src.services.playwright_base import (
     PlaywrightManager,
     random_delay,
     screenshot_on_failure,
-    upload_file,
 )
 from src.utils.files import expand_path, validate_file
 

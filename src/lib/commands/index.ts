@@ -17,7 +17,7 @@ export function initializeCommandSystem(): void {
   // Future command groups will be registered here
 
   if (import.meta.env.DEV) {
-    console.log('Command system initialized')
+    // Command system ready — navigation, window, and notification commands registered
   }
 }
 

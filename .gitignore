@@ -33,3 +33,12 @@ sidecar/build/
 sidecar/*.egg-info/
 __pycache__/
 *.pyc
+
+# Sensitive files
+.env
+.env.*
+token.json
+client_secrets.json
+
+# Playwright persistent browser data
+playwright_data/

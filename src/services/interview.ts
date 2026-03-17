@@ -1,8 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { logger } from '@/lib/logger'
-
-const SIDECAR_URL = 'http://127.0.0.1:9876'
+import { SIDECAR_URL } from '@/lib/sidecar'
 
 interface InterviewPrepResult {
   company_overview: string
