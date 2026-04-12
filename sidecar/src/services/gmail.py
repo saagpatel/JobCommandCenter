@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import os
 from email.mime.text import MIMEText
 from pathlib import Path
 
@@ -32,6 +33,7 @@ class GmailService:
             try:
                 creds.refresh(Request())
                 self._TOKEN_PATH.write_text(creds.to_json())
+                os.chmod(self._TOKEN_PATH, 0o600)
             except Exception:
                 logger.warning("Gmail token refresh failed, removing stale token")
                 self._TOKEN_PATH.unlink(missing_ok=True)
@@ -63,6 +65,7 @@ class GmailService:
             )
             creds = flow.run_local_server(port=0)
             self._TOKEN_PATH.write_text(creds.to_json())
+            os.chmod(self._TOKEN_PATH, 0o600)
 
             from googleapiclient.discovery import build
             service = build("gmail", "v1", credentials=creds)
