@@ -1,6 +1,7 @@
 # Implementation Roadmap
 
 ## Session Strategy
+
 Each Claude Code session tackles ONE focused unit of work. Sessions are scoped to ~2-3 hours. The Tauri frontend and Python sidecar are developed in parallel — frontend sessions and sidecar sessions can interleave. After each session, update CLAUDE.md's "Current Phase" section.
 
 ---
@@ -8,9 +9,11 @@ Each Claude Code session tackles ONE focused unit of work. Sessions are scoped t
 ## Phase 0: Foundation (Weeks 1-2)
 
 ### Session 1: Template fork + SQLite + Rust commands
+
 **Focus:** Get the Tauri app running with a real database.
 
 Tasks:
+
 1. Clone dannysmith/tauri-template → rename to job-command-center
 2. Update tauri.conf.json: identifier `com.jcc.app`, window title "Job Command Center"
 3. Strip demo content but keep: sidebar layout, preferences system, shadcn theme, Zustand setup, TanStack Query setup, tauri-specta pipeline
@@ -28,9 +31,11 @@ Tasks:
 ---
 
 ### Session 2: Tracker Board UI
+
 **Focus:** Build the main view — a Kanban board for job tracking.
 
 Tasks:
+
 1. Install @dnd-kit/core and @dnd-kit/sortable
 2. Build `KanbanBoard` component with 5 columns (Saved, Applied, Interviewing, Offer, Rejected)
 3. Build `JobCard` component: company name, role, tier badge (T1/T2), applied date, days-since-applied counter
@@ -47,9 +52,11 @@ Tasks:
 ---
 
 ### Session 3: Python sidecar skeleton + health monitoring
+
 **Focus:** Get the Python submission engine running alongside the Tauri app.
 
 Tasks:
+
 1. Create `sidecar/` directory with pyproject.toml (dependencies: fastapi, uvicorn, httpx, playwright, pydantic, structlog, keyring, anthropic, google-api-python-client, google-auth-oauthlib)
 2. Implement `main.py`: FastAPI app on 127.0.0.1:9876 with `/health` and `/shutdown` endpoints
 3. Implement `api/models.py`: Pydantic models for ApplicantProfile, JobListing, SubmissionResult
@@ -71,9 +78,11 @@ Tasks:
 ---
 
 ### Session 4: Profile + Settings + File Linking
+
 **Focus:** User configuration — profile, credentials, file paths.
 
 Tasks:
+
 1. Build Settings page with tabs: Profile, Credentials, Platforms
 2. Profile tab: form bound to `profile` table (name, email, phone, LinkedIn, location, auth/sponsorship, base resume path)
 3. Credentials tab: Anthropic API key input → stored in Keychain via Rust command, masked display. Google OAuth status indicator.
@@ -91,13 +100,15 @@ Tasks:
 ## Phase 1: API-Direct Adapters (Weeks 3-4)
 
 ### Session 5: Ashby API adapter
+
 **Focus:** First real submission adapter — API-direct, no browser needed.
 
 Tasks:
+
 1. Implement `adapters/ashby.py`: URL parser, form definition fetcher, field mapper, multipart submission
 2. Implement `/submit` FastAPI endpoint (routes to correct adapter by ATS type)
 3. Implement dry-run mode: fetch form def, validate mapping, return what WOULD be submitted
-4. Implement retry with exponential backoff (2^n * 1s, max 3 retries)
+4. Implement retry with exponential backoff (2^n \* 1s, max 3 retries)
 5. Test form fetcher against Ramp and Whatnot posting IDs
 6. Test real submission against one Ashby listing
 7. Return SubmissionResult with success/failure, fields filled, fields skipped, response data
@@ -109,9 +120,11 @@ Tasks:
 ---
 
 ### Session 6: Greenhouse adapter + Submit Console UI
+
 **Focus:** Second API adapter + the React UI for batch submission.
 
 Tasks:
+
 1. Implement `adapters/greenhouse.py`: URL parser, form question fetcher, field mapping, multipart submission, API key handling
 2. Implement `/submit/batch` endpoint with SSE streaming (yield SubmissionResult per job)
 3. Build Submit Console view in React:
@@ -132,9 +145,11 @@ Tasks:
 ## Phase 2: Playwright Adapters (Weeks 5-6)
 
 ### Session 7: Playwright base + LinkedIn Easy Apply
+
 **Focus:** Browser automation foundation + the highest-value Playwright adapter.
 
 Tasks:
+
 1. Implement `services/playwright_base.py`: persistent context manager, stealth config, human-like delays, screenshot-on-failure
 2. Implement `/playwright/sessions/{platform}/login` endpoint: opens headed browser for manual LinkedIn login, saves session to persistent context dir
 3. Implement `adapters/linkedin.py`: LinkedIn Easy Apply flow
@@ -154,9 +169,11 @@ Tasks:
 ---
 
 ### Session 8: Indeed + Gem + Workday + Generic
+
 **Focus:** Remaining Playwright adapters.
 
 Tasks:
+
 1. Implement `adapters/indeed.py`: Indeed Apply flow (persistent context, form fill, file upload, pause-before-submit)
 2. Implement `adapters/gem.py`: Gem/Retool form fill (standard fields + file upload)
 3. Implement `adapters/workday.py`: Workday multi-page flow handler
@@ -173,9 +190,11 @@ Tasks:
 ## Phase 3: Follow-ups, Interview Prep, Analytics (Weeks 7-8)
 
 ### Session 9: Follow-up email system
+
 **Focus:** Claude-drafted follow-up emails sent via Gmail.
 
 Tasks:
+
 1. Implement `services/claude_ai.py`: Anthropic SDK wrapper with draft_followup() and interview_prep() methods
 2. Implement `services/gmail.py`: OAuth2 flow (InstalledAppFlow), token management, send_email()
 3. Implement `/gmail/auth`, `/gmail/status`, `/gmail/send` endpoints
@@ -196,9 +215,11 @@ Tasks:
 ---
 
 ### Session 10: Interview prep + Analytics dashboard
+
 **Focus:** The last two views — intelligence and visibility.
 
 Tasks:
+
 1. Implement `/ai/interview-prep` endpoint: Claude generates structured brief (company overview, recent news, likely questions, talking points, red flags to ask about)
 2. Build Interview Prep view:
    - Auto-generate brief when job status → "Interviewing"
@@ -220,6 +241,7 @@ Tasks:
 ---
 
 ## Context Management
+
 - Always include CLAUDE.md in every session
 - For React sessions: include relevant component files + TanStack Query hooks + tauri-bindings.ts
 - For sidecar sessions: include relevant adapter/service files + FastAPI routes

@@ -4,6 +4,8 @@ description: Use this agent to review user guide documentation against actual sy
 color: purple
 ---
 
+<!-- JCC-specific: no global equivalent. Reviews docs/userguide/ against JCC UI (src/components/, src/stores/, src/lib/commands/, src/lib/shortcuts.ts, src/i18n/locales/). -->
+
 ## Purpose
 
 Review user guide documentation against actual system features. Identify gaps, outdated content, and areas needing improvement. Return specific recommendations for updates.

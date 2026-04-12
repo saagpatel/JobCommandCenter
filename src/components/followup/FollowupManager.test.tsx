@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@/test/test-utils'
 import userEvent from '@testing-library/user-event'
 import { FollowupManager } from './FollowupManager'
+import type * as TauriBindings from '@/lib/tauri-bindings'
 
 const mockCommands = vi.hoisted(() => ({
   listFollowups: vi.fn(),
@@ -9,7 +10,7 @@ const mockCommands = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/tauri-bindings', async importOriginal => {
-  const original = await importOriginal<typeof import('@/lib/tauri-bindings')>()
+  const original = await importOriginal<typeof TauriBindings>()
   return {
     ...original,
     commands: {

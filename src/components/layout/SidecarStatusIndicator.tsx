@@ -1,5 +1,9 @@
 import { cn } from '@/lib/utils'
-import { useSidecarStatus, useStartSidecar, useStopSidecar } from '@/services/sidecar'
+import {
+  useSidecarStatus,
+  useStartSidecar,
+  useStopSidecar,
+} from '@/services/sidecar'
 import { useUIStore } from '@/store/ui-store'
 import {
   Popover,

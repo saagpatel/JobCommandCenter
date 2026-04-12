@@ -10,13 +10,10 @@ export function useSidecarEvents() {
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    const unlisten = listen<SidecarStatus>(
-      'sidecar-status-changed',
-      event => {
-        setSidecarStatus(event.payload.state)
-        queryClient.setQueryData(sidecarQueryKeys.status(), event.payload)
-      }
-    )
+    const unlisten = listen<SidecarStatus>('sidecar-status-changed', event => {
+      setSidecarStatus(event.payload.state)
+      queryClient.setQueryData(sidecarQueryKeys.status(), event.payload)
+    })
 
     return () => {
       unlisten.then(fn => fn())

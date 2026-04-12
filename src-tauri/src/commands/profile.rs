@@ -21,12 +21,11 @@ pub async fn get_profile(app: AppHandle) -> Result<Option<Profile>, String> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn upsert_profile(
-    app: AppHandle,
-    input: UpsertProfileInput,
-) -> Result<Profile, String> {
+pub async fn upsert_profile(app: AppHandle, input: UpsertProfileInput) -> Result<Profile, String> {
     let pool = app.state::<SqlitePool>();
-    let location = input.location.unwrap_or_else(|| "San Francisco, CA".to_string());
+    let location = input
+        .location
+        .unwrap_or_else(|| "San Francisco, CA".to_string());
     let authorized = input.authorized_to_work.unwrap_or(true);
     let sponsorship = input.requires_sponsorship.unwrap_or(false);
     let follow_up_days = input.follow_up_days.unwrap_or(7);

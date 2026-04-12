@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,7 +15,9 @@ export function ProfileTab() {
   const { data: profile, isLoading } = useProfile()
   const upsertProfile = useUpsertProfile()
 
-  const [form, setForm] = useState<UpsertProfileInput>({
+  const [draftForm, setDraftForm] = useState<UpsertProfileInput | null>(null)
+
+  const form: UpsertProfileInput = {
     first_name: '',
     last_name: '',
     email: '',
@@ -27,31 +29,29 @@ export function ProfileTab() {
     preferred_name: null,
     base_resume_path: null,
     follow_up_days: null,
-  })
-
-  useEffect(() => {
-    if (profile) {
-      setForm({
-        first_name: profile.first_name,
-        last_name: profile.last_name,
-        email: profile.email,
-        phone: profile.phone,
-        linkedin_url: profile.linkedin_url,
-        location: profile.location,
-        authorized_to_work: profile.authorized_to_work,
-        requires_sponsorship: profile.requires_sponsorship,
-        preferred_name: profile.preferred_name,
-        base_resume_path: profile.base_resume_path,
-        follow_up_days: profile.follow_up_days,
-      })
-    }
-  }, [profile])
+    ...(profile
+      ? {
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          email: profile.email,
+          phone: profile.phone,
+          linkedin_url: profile.linkedin_url,
+          location: profile.location,
+          authorized_to_work: profile.authorized_to_work,
+          requires_sponsorship: profile.requires_sponsorship,
+          preferred_name: profile.preferred_name,
+          base_resume_path: profile.base_resume_path,
+          follow_up_days: profile.follow_up_days,
+        }
+      : {}),
+    ...(draftForm ?? {}),
+  }
 
   function updateField<K extends keyof UpsertProfileInput>(
     key: K,
     value: UpsertProfileInput[K]
   ) {
-    setForm(prev => ({ ...prev, [key]: value }))
+    setDraftForm(prev => ({ ...(prev ?? form), [key]: value }))
   }
 
   function handleSave() {

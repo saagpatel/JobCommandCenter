@@ -57,7 +57,9 @@ pub async fn create_job(app: AppHandle, input: CreateJobInput) -> Result<Job, St
     let id = uuid::Uuid::now_v7().to_string();
     let status = input.status.unwrap_or_else(|| "saved".to_string());
     let tier = input.tier.unwrap_or_else(|| "tier1".to_string());
-    let source = input.source.unwrap_or_else(|| "Company careers page".to_string());
+    let source = input
+        .source
+        .unwrap_or_else(|| "Company careers page".to_string());
     let custom_fields = input.custom_fields.unwrap_or_else(|| "{}".to_string());
     let notes = input.notes.unwrap_or_default();
 
@@ -96,11 +98,7 @@ pub async fn create_job(app: AppHandle, input: CreateJobInput) -> Result<Job, St
 
 #[tauri::command]
 #[specta::specta]
-pub async fn update_job(
-    app: AppHandle,
-    id: String,
-    input: UpdateJobInput,
-) -> Result<Job, String> {
+pub async fn update_job(app: AppHandle, id: String, input: UpdateJobInput) -> Result<Job, String> {
     let pool = app.state::<SqlitePool>();
 
     // Build dynamic UPDATE — only set fields that are Some
@@ -117,7 +115,13 @@ pub async fn update_job(
     maybe_set!(input, set_clauses, values, tier, "tier");
     maybe_set!(input, set_clauses, values, source, "source");
     maybe_set!(input, set_clauses, values, resume_path, "resume_path");
-    maybe_set!(input, set_clauses, values, cover_letter_path, "cover_letter_path");
+    maybe_set!(
+        input,
+        set_clauses,
+        values,
+        cover_letter_path,
+        "cover_letter_path"
+    );
     maybe_set!(input, set_clauses, values, custom_fields, "custom_fields");
     maybe_set!(input, set_clauses, values, notes, "notes");
     maybe_set!(input, set_clauses, values, applied_at, "applied_at");
@@ -164,14 +168,13 @@ pub async fn update_job(
 
         if existing == 0 {
             // Read follow-up interval from profile (default 7 days)
-            let follow_up_days: i32 = sqlx::query_scalar(
-                "SELECT follow_up_days FROM profile WHERE id = 1"
-            )
-            .fetch_optional(pool.inner())
-            .await
-            .ok()
-            .flatten()
-            .unwrap_or(7);
+            let follow_up_days: i32 =
+                sqlx::query_scalar("SELECT follow_up_days FROM profile WHERE id = 1")
+                    .fetch_optional(pool.inner())
+                    .await
+                    .ok()
+                    .flatten()
+                    .unwrap_or(7);
 
             let interval = format!("+{follow_up_days} days");
             let followup_id = uuid::Uuid::now_v7().to_string();
@@ -189,7 +192,7 @@ pub async fn update_job(
     // Auto-create interview prep note when status changes to "interviewing"
     if input.status.as_deref() == Some("interviewing") {
         let existing_prep: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM notes WHERE job_id = ? AND note_type = 'interview_prep'"
+            "SELECT COUNT(*) FROM notes WHERE job_id = ? AND note_type = 'interview_prep'",
         )
         .bind(&id)
         .fetch_one(pool.inner())
@@ -198,13 +201,12 @@ pub async fn update_job(
 
         if existing_prep == 0 {
             // Fetch company/role for the title
-            let job_info: Option<(String, String)> = sqlx::query_as(
-                "SELECT company, role FROM jobs WHERE id = ?"
-            )
-            .bind(&id)
-            .fetch_optional(pool.inner())
-            .await
-            .unwrap_or(None);
+            let job_info: Option<(String, String)> =
+                sqlx::query_as("SELECT company, role FROM jobs WHERE id = ?")
+                    .bind(&id)
+                    .fetch_optional(pool.inner())
+                    .await
+                    .unwrap_or(None);
 
             let title = match job_info {
                 Some((company, role)) => format!("Interview Prep: {} - {}", company, role),

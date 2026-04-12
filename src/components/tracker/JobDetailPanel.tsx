@@ -307,9 +307,9 @@ export function JobDetailPanel() {
                       variant="outline"
                       size="icon"
                       onClick={async () => {
-                        const result = await commands.revealInFinder(
-                          job.resume_path!
-                        )
+                        const resumePath = job.resume_path
+                        if (!resumePath) return
+                        const result = await commands.revealInFinder(resumePath)
                         if (result.status === 'error') {
                           logger.error('Failed to reveal resume in Finder', {
                             error: result.error,
@@ -361,9 +361,10 @@ export function JobDetailPanel() {
                       variant="outline"
                       size="icon"
                       onClick={async () => {
-                        const result = await commands.revealInFinder(
-                          job.cover_letter_path!
-                        )
+                        const coverLetterPath = job.cover_letter_path
+                        if (!coverLetterPath) return
+                        const result =
+                          await commands.revealInFinder(coverLetterPath)
                         if (result.status === 'error') {
                           logger.error(
                             'Failed to reveal cover letter in Finder',

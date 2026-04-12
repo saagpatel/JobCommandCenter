@@ -48,9 +48,7 @@ impl SidecarManager {
     fn status(&self) -> SidecarStatus {
         let pid = self.child.as_ref().and_then(|c| c.id());
 
-        let uptime_seconds = self
-            .started_at
-            .map(|start| start.elapsed().as_secs_f64());
+        let uptime_seconds = self.started_at.map(|start| start.elapsed().as_secs_f64());
 
         SidecarStatus {
             state: self.state.clone(),
@@ -74,9 +72,7 @@ async fn check_health() -> bool {
     let client = http_client();
     let url = format!("{SIDECAR_BASE_URL}/health");
     match client.get(&url).send().await {
-        Ok(resp) if resp.status().is_success() => {
-            resp.json::<HealthResponse>().await.is_ok()
-        }
+        Ok(resp) if resp.status().is_success() => resp.json::<HealthResponse>().await.is_ok(),
         _ => false,
     }
 }
@@ -96,8 +92,8 @@ fn emit_status(app: &AppHandle, status: &SidecarStatus) {
 async fn spawn_python_process() -> Result<tokio::process::Child, String> {
     // In debug mode, run Python directly
     // In release mode, would use bundled binary
-    let project_root = std::env::current_dir()
-        .map_err(|e| format!("Failed to get current dir: {e}"))?;
+    let project_root =
+        std::env::current_dir().map_err(|e| format!("Failed to get current dir: {e}"))?;
 
     // Try to find sidecar relative to the project root or executable
     let sidecar_script = if cfg!(debug_assertions) {

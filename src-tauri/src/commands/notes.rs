@@ -10,9 +10,9 @@ const NOTE_COLUMNS: &str = "id, job_id, note_type, title, content, created_at, u
 #[specta::specta]
 pub async fn list_notes_for_job(app: AppHandle, job_id: String) -> Result<Vec<Note>, String> {
     let pool = app.state::<SqlitePool>();
-    sqlx::query_as::<_, Note>(
-        &format!("SELECT {NOTE_COLUMNS} FROM notes WHERE job_id = ? ORDER BY created_at DESC"),
-    )
+    sqlx::query_as::<_, Note>(&format!(
+        "SELECT {NOTE_COLUMNS} FROM notes WHERE job_id = ? ORDER BY created_at DESC"
+    ))
     .bind(&job_id)
     .fetch_all(pool.inner())
     .await
@@ -26,16 +26,14 @@ pub async fn list_notes_for_job(app: AppHandle, job_id: String) -> Result<Vec<No
 #[specta::specta]
 pub async fn get_note(app: AppHandle, id: String) -> Result<Option<Note>, String> {
     let pool = app.state::<SqlitePool>();
-    sqlx::query_as::<_, Note>(
-        &format!("SELECT {NOTE_COLUMNS} FROM notes WHERE id = ?"),
-    )
-    .bind(&id)
-    .fetch_optional(pool.inner())
-    .await
-    .map_err(|e| {
-        log::error!("Failed to get note {id}: {e}");
-        format!("Failed to get note: {e}")
-    })
+    sqlx::query_as::<_, Note>(&format!("SELECT {NOTE_COLUMNS} FROM notes WHERE id = ?"))
+        .bind(&id)
+        .fetch_optional(pool.inner())
+        .await
+        .map_err(|e| {
+            log::error!("Failed to get note {id}: {e}");
+            format!("Failed to get note: {e}")
+        })
 }
 
 #[tauri::command]
@@ -44,36 +42,36 @@ pub async fn create_note(app: AppHandle, input: CreateNoteInput) -> Result<Note,
     let pool = app.state::<SqlitePool>();
     let id = uuid::Uuid::now_v7().to_string();
 
-    sqlx::query(
-        "INSERT INTO notes (id, job_id, note_type, title, content) VALUES (?, ?, ?, ?, ?)",
-    )
-    .bind(&id)
-    .bind(&input.job_id)
-    .bind(&input.note_type)
-    .bind(&input.title)
-    .bind(&input.content)
-    .execute(pool.inner())
-    .await
-    .map_err(|e| {
-        log::error!("Failed to create note: {e}");
-        format!("Failed to create note: {e}")
-    })?;
+    sqlx::query("INSERT INTO notes (id, job_id, note_type, title, content) VALUES (?, ?, ?, ?, ?)")
+        .bind(&id)
+        .bind(&input.job_id)
+        .bind(&input.note_type)
+        .bind(&input.title)
+        .bind(&input.content)
+        .execute(pool.inner())
+        .await
+        .map_err(|e| {
+            log::error!("Failed to create note: {e}");
+            format!("Failed to create note: {e}")
+        })?;
 
-    sqlx::query_as::<_, Note>(
-        &format!("SELECT {NOTE_COLUMNS} FROM notes WHERE id = ?"),
-    )
-    .bind(&id)
-    .fetch_one(pool.inner())
-    .await
-    .map_err(|e| {
-        log::error!("Failed to retrieve created note: {e}");
-        format!("Note created but could not be retrieved: {e}")
-    })
+    sqlx::query_as::<_, Note>(&format!("SELECT {NOTE_COLUMNS} FROM notes WHERE id = ?"))
+        .bind(&id)
+        .fetch_one(pool.inner())
+        .await
+        .map_err(|e| {
+            log::error!("Failed to retrieve created note: {e}");
+            format!("Note created but could not be retrieved: {e}")
+        })
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn update_note(app: AppHandle, id: String, input: UpdateNoteInput) -> Result<Note, String> {
+pub async fn update_note(
+    app: AppHandle,
+    id: String,
+    input: UpdateNoteInput,
+) -> Result<Note, String> {
     let pool = app.state::<SqlitePool>();
 
     let mut set_clauses: Vec<String> = Vec::new();
@@ -83,9 +81,9 @@ pub async fn update_note(app: AppHandle, id: String, input: UpdateNoteInput) -> 
     maybe_set!(input, set_clauses, values, content, "content");
 
     if set_clauses.is_empty() {
-        return sqlx::query_as::<_, Note>(
-            &format!("SELECT {NOTE_COLUMNS} FROM notes WHERE id = ?"),
-        )
+        return sqlx::query_as::<_, Note>(&format!(
+            "SELECT {NOTE_COLUMNS} FROM notes WHERE id = ?"
+        ))
         .bind(&id)
         .fetch_optional(pool.inner())
         .await
@@ -111,13 +109,11 @@ pub async fn update_note(app: AppHandle, id: String, input: UpdateNoteInput) -> 
         return Err("Note not found".to_string());
     }
 
-    sqlx::query_as::<_, Note>(
-        &format!("SELECT {NOTE_COLUMNS} FROM notes WHERE id = ?"),
-    )
-    .bind(&id)
-    .fetch_one(pool.inner())
-    .await
-    .map_err(|e| format!("Note updated but could not be retrieved: {e}"))
+    sqlx::query_as::<_, Note>(&format!("SELECT {NOTE_COLUMNS} FROM notes WHERE id = ?"))
+        .bind(&id)
+        .fetch_one(pool.inner())
+        .await
+        .map_err(|e| format!("Note updated but could not be retrieved: {e}"))
 }
 
 #[tauri::command]

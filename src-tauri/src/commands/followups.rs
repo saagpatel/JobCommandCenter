@@ -8,21 +8,24 @@ const FOLLOWUP_COLUMNS: &str = "id, job_id, draft_subject, draft_body, status, s
 
 #[tauri::command]
 #[specta::specta]
-pub async fn list_followups(app: AppHandle, status: Option<String>) -> Result<Vec<Followup>, String> {
+pub async fn list_followups(
+    app: AppHandle,
+    status: Option<String>,
+) -> Result<Vec<Followup>, String> {
     let pool = app.state::<SqlitePool>();
     let followups = match status {
         Some(ref s) => {
-            sqlx::query_as::<_, Followup>(
-                &format!("SELECT {FOLLOWUP_COLUMNS} FROM followups WHERE status = ? ORDER BY scheduled_date ASC"),
-            )
+            sqlx::query_as::<_, Followup>(&format!(
+            "SELECT {FOLLOWUP_COLUMNS} FROM followups WHERE status = ? ORDER BY scheduled_date ASC"
+        ))
             .bind(s)
             .fetch_all(pool.inner())
             .await
         }
         None => {
-            sqlx::query_as::<_, Followup>(
-                &format!("SELECT {FOLLOWUP_COLUMNS} FROM followups ORDER BY scheduled_date ASC"),
-            )
+            sqlx::query_as::<_, Followup>(&format!(
+                "SELECT {FOLLOWUP_COLUMNS} FROM followups ORDER BY scheduled_date ASC"
+            ))
             .fetch_all(pool.inner())
             .await
         }
@@ -35,11 +38,14 @@ pub async fn list_followups(app: AppHandle, status: Option<String>) -> Result<Ve
 
 #[tauri::command]
 #[specta::specta]
-pub async fn list_followups_for_job(app: AppHandle, job_id: String) -> Result<Vec<Followup>, String> {
+pub async fn list_followups_for_job(
+    app: AppHandle,
+    job_id: String,
+) -> Result<Vec<Followup>, String> {
     let pool = app.state::<SqlitePool>();
-    sqlx::query_as::<_, Followup>(
-        &format!("SELECT {FOLLOWUP_COLUMNS} FROM followups WHERE job_id = ? ORDER BY scheduled_date ASC"),
-    )
+    sqlx::query_as::<_, Followup>(&format!(
+        "SELECT {FOLLOWUP_COLUMNS} FROM followups WHERE job_id = ? ORDER BY scheduled_date ASC"
+    ))
     .bind(&job_id)
     .fetch_all(pool.inner())
     .await
@@ -51,7 +57,10 @@ pub async fn list_followups_for_job(app: AppHandle, job_id: String) -> Result<Ve
 
 #[tauri::command]
 #[specta::specta]
-pub async fn create_followup(app: AppHandle, input: CreateFollowupInput) -> Result<Followup, String> {
+pub async fn create_followup(
+    app: AppHandle,
+    input: CreateFollowupInput,
+) -> Result<Followup, String> {
     let pool = app.state::<SqlitePool>();
     let id = uuid::Uuid::now_v7().to_string();
 
@@ -69,9 +78,9 @@ pub async fn create_followup(app: AppHandle, input: CreateFollowupInput) -> Resu
         format!("Failed to create followup: {e}")
     })?;
 
-    sqlx::query_as::<_, Followup>(
-        &format!("SELECT {FOLLOWUP_COLUMNS} FROM followups WHERE id = ?"),
-    )
+    sqlx::query_as::<_, Followup>(&format!(
+        "SELECT {FOLLOWUP_COLUMNS} FROM followups WHERE id = ?"
+    ))
     .bind(&id)
     .fetch_one(pool.inner())
     .await
@@ -83,7 +92,11 @@ pub async fn create_followup(app: AppHandle, input: CreateFollowupInput) -> Resu
 
 #[tauri::command]
 #[specta::specta]
-pub async fn update_followup(app: AppHandle, id: String, input: UpdateFollowupInput) -> Result<Followup, String> {
+pub async fn update_followup(
+    app: AppHandle,
+    id: String,
+    input: UpdateFollowupInput,
+) -> Result<Followup, String> {
     let pool = app.state::<SqlitePool>();
 
     let mut set_clauses: Vec<String> = Vec::new();
@@ -94,13 +107,25 @@ pub async fn update_followup(app: AppHandle, id: String, input: UpdateFollowupIn
     maybe_set!(input, set_clauses, values, status, "status");
     maybe_set!(input, set_clauses, values, scheduled_date, "scheduled_date");
     maybe_set!(input, set_clauses, values, sent_at, "sent_at");
-    maybe_set!(input, set_clauses, values, gmail_message_id, "gmail_message_id");
-    maybe_set!(input, set_clauses, values, recipient_email, "recipient_email");
+    maybe_set!(
+        input,
+        set_clauses,
+        values,
+        gmail_message_id,
+        "gmail_message_id"
+    );
+    maybe_set!(
+        input,
+        set_clauses,
+        values,
+        recipient_email,
+        "recipient_email"
+    );
 
     if set_clauses.is_empty() {
-        return sqlx::query_as::<_, Followup>(
-            &format!("SELECT {FOLLOWUP_COLUMNS} FROM followups WHERE id = ?"),
-        )
+        return sqlx::query_as::<_, Followup>(&format!(
+            "SELECT {FOLLOWUP_COLUMNS} FROM followups WHERE id = ?"
+        ))
         .bind(&id)
         .fetch_optional(pool.inner())
         .await
@@ -108,7 +133,10 @@ pub async fn update_followup(app: AppHandle, id: String, input: UpdateFollowupIn
         .ok_or_else(|| "Followup not found".to_string());
     }
 
-    let sql = format!("UPDATE followups SET {} WHERE id = ?", set_clauses.join(", "));
+    let sql = format!(
+        "UPDATE followups SET {} WHERE id = ?",
+        set_clauses.join(", ")
+    );
     let mut query = sqlx::query(&sql);
     for val in &values {
         query = query.bind(val);
@@ -124,9 +152,9 @@ pub async fn update_followup(app: AppHandle, id: String, input: UpdateFollowupIn
         return Err("Followup not found".to_string());
     }
 
-    sqlx::query_as::<_, Followup>(
-        &format!("SELECT {FOLLOWUP_COLUMNS} FROM followups WHERE id = ?"),
-    )
+    sqlx::query_as::<_, Followup>(&format!(
+        "SELECT {FOLLOWUP_COLUMNS} FROM followups WHERE id = ?"
+    ))
     .bind(&id)
     .fetch_one(pool.inner())
     .await

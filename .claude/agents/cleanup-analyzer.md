@@ -4,6 +4,8 @@ description: Use this agent to run static analysis tools and get structured clea
 color: green
 ---
 
+<!-- JCC-specific: overrides global code-fixer (different role — analysis not fixing). Knows shadcn/Radix/Tauri keep-list, Rust idiom patterns, and JCC tool scripts. -->
+
 ## Purpose
 
 Run static analysis tools (knip, jscpd, check:all), investigate each finding in the codebase, and return structured recommendations to the main agent.

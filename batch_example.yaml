@@ -6,13 +6,13 @@
 profile:
   first_name: Saagar
   last_name: Patel
-  email: "REPLACE_WITH_EMAIL"
-  phone: "REPLACE_WITH_PHONE"
-  linkedin_url: "https://linkedin.com/in/REPLACE"
-  location: "San Francisco, CA"
+  email: 'REPLACE_WITH_EMAIL'
+  phone: 'REPLACE_WITH_PHONE'
+  linkedin_url: 'https://linkedin.com/in/REPLACE'
+  location: 'San Francisco, CA'
   authorized_to_work: true
   requires_sponsorship: false
-  base_resume_path: "~/job-search-2026/base/Saagar_Patel_Resume.pdf"
+  base_resume_path: '~/job-search-2026/base/Saagar_Patel_Resume.pdf'
 
 jobs:
   # --- Tier 1: Tailored Package via ATS API ---
@@ -20,53 +20,53 @@ jobs:
     role: IT Site Lead
     ats: ashby
     tier: tier1
-    apply_url: "https://jobs.ashbyhq.com/ramp/9a60f41c-1df7-4330-bd0c-ba1481a13bbb/application"
-    job_posting_id: "9a60f41c-1df7-4330-bd0c-ba1481a13bbb"
-    resume_path: "~/job-search-2026/Ramp - IT Site Lead/Saagar_Patel_Resume_Ramp.pdf"
-    cover_letter_path: "~/job-search-2026/Ramp - IT Site Lead/Saagar_Patel_Cover_Letter_Ramp.pdf"
-    source: "Company careers page"
+    apply_url: 'https://jobs.ashbyhq.com/ramp/9a60f41c-1df7-4330-bd0c-ba1481a13bbb/application'
+    job_posting_id: '9a60f41c-1df7-4330-bd0c-ba1481a13bbb'
+    resume_path: '~/job-search-2026/Ramp - IT Site Lead/Saagar_Patel_Resume_Ramp.pdf'
+    cover_letter_path: '~/job-search-2026/Ramp - IT Site Lead/Saagar_Patel_Cover_Letter_Ramp.pdf'
+    source: 'Company careers page'
     custom_fields:
-      it_incident_response: "During a CEO all-hands meeting, our AV system failed..."
-      offboarding_checklist: "Access: Okta deactivation, Drive transfer..."
+      it_incident_response: 'During a CEO all-hands meeting, our AV system failed...'
+      offboarding_checklist: 'Access: Okta deactivation, Drive transfer...'
 
   - company: Whatnot
     role: Head of IT
     ats: ashby
     tier: tier1
-    apply_url: "https://jobs.ashbyhq.com/whatnot/3d7eb1de-fc4b-44e6-ad18-a49c0dfc9aeb/application"
-    job_posting_id: "3d7eb1de-fc4b-44e6-ad18-a49c0dfc9aeb"
-    resume_path: "~/job-search-2026/Whatnot - Head of IT/Saagar_Patel_Resume_Whatnot.pdf"
-    cover_letter_path: "~/job-search-2026/Whatnot - Head of IT/Saagar_Patel_Cover_Letter_Whatnot.pdf"
-    source: "LinkedIn"
+    apply_url: 'https://jobs.ashbyhq.com/whatnot/3d7eb1de-fc4b-44e6-ad18-a49c0dfc9aeb/application'
+    job_posting_id: '3d7eb1de-fc4b-44e6-ad18-a49c0dfc9aeb'
+    resume_path: '~/job-search-2026/Whatnot - Head of IT/Saagar_Patel_Resume_Whatnot.pdf'
+    cover_letter_path: '~/job-search-2026/Whatnot - Head of IT/Saagar_Patel_Cover_Letter_Whatnot.pdf'
+    source: 'LinkedIn'
 
   - company: Superhuman
     role: IT Operations Engineer
     ats: greenhouse
     tier: tier1
-    apply_url: "https://job-boards.greenhouse.io/grammarly/jobs/7391476"
-    board_token: "grammarly"
-    resume_path: "~/job-search-2026/Superhuman - IT Operations Engineer/Saagar_Patel_Resume_Superhuman_Ops.pdf"
-    cover_letter_path: "~/job-search-2026/Superhuman - IT Operations Engineer/Saagar_Patel_Cover_Letter_Superhuman_Ops.pdf"
-    source: "Company careers page"
+    apply_url: 'https://job-boards.greenhouse.io/grammarly/jobs/7391476'
+    board_token: 'grammarly'
+    resume_path: '~/job-search-2026/Superhuman - IT Operations Engineer/Saagar_Patel_Resume_Superhuman_Ops.pdf'
+    cover_letter_path: '~/job-search-2026/Superhuman - IT Operations Engineer/Saagar_Patel_Cover_Letter_Superhuman_Ops.pdf'
+    source: 'Company careers page'
 
   # --- Tier 1: Tailored Package via Playwright ---
   - company: Retool
     role: Head of IT
     ats: gem
     tier: tier1
-    apply_url: "https://jobs.gem.com/retool/am9icG9zdDoL3VSk4pxsUhNrnFxx6QUe"
-    resume_path: "~/job-search-2026/Retool - Head of IT/Saagar_Patel_Resume_Retool.pdf"
-    cover_letter_path: "~/job-search-2026/Retool - Head of IT/Saagar_Patel_Cover_Letter_Retool.pdf"
-    source: "Retool Careers Page"
+    apply_url: 'https://jobs.gem.com/retool/am9icG9zdDoL3VSk4pxsUhNrnFxx6QUe'
+    resume_path: '~/job-search-2026/Retool - Head of IT/Saagar_Patel_Resume_Retool.pdf'
+    cover_letter_path: '~/job-search-2026/Retool - Head of IT/Saagar_Patel_Cover_Letter_Retool.pdf'
+    source: 'Retool Careers Page'
 
   - company: Sutter Health
     role: AI Engineer
     ats: workday
     tier: tier1
-    apply_url: "https://jobs.sutterhealth.org/us/en/job/R-119982/AI-Engineer"
-    resume_path: "~/job-search-2026/Sutter Health - AI Engineer/Saagar_Patel_Resume_Sutter_Health.pdf"
-    cover_letter_path: "~/job-search-2026/Sutter Health - AI Engineer/Saagar_Patel_Cover_Letter_Sutter_Health.pdf"
-    source: "Company careers page"
+    apply_url: 'https://jobs.sutterhealth.org/us/en/job/R-119982/AI-Engineer'
+    resume_path: '~/job-search-2026/Sutter Health - AI Engineer/Saagar_Patel_Resume_Sutter_Health.pdf'
+    cover_letter_path: '~/job-search-2026/Sutter Health - AI Engineer/Saagar_Patel_Cover_Letter_Sutter_Health.pdf'
+    source: 'Company careers page'
 
   # --- Tier 2: Easy Apply with base resume ---
   # These use LinkedIn/Indeed Easy Apply — no tailored cover letter

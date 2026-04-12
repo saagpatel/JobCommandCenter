@@ -1,7 +1,9 @@
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager};
 
-use crate::types::{AdapterCount, PipelineFunnel, SidebarCounts, TierComparison, TierStats, WeeklyApplications};
+use crate::types::{
+    AdapterCount, PipelineFunnel, SidebarCounts, TierComparison, TierStats, WeeklyApplications,
+};
 
 #[tauri::command]
 #[specta::specta]
@@ -30,12 +32,11 @@ pub async fn get_applications_by_week(app: AppHandle) -> Result<Vec<WeeklyApplic
 pub async fn get_pipeline_funnel(app: AppHandle) -> Result<PipelineFunnel, String> {
     let pool = app.state::<SqlitePool>();
 
-    let rows: Vec<(String, i32)> = sqlx::query_as(
-        "SELECT status, COUNT(*) as count FROM jobs GROUP BY status",
-    )
-    .fetch_all(pool.inner())
-    .await
-    .map_err(|e| format!("Failed to get pipeline funnel: {e}"))?;
+    let rows: Vec<(String, i32)> =
+        sqlx::query_as("SELECT status, COUNT(*) as count FROM jobs GROUP BY status")
+            .fetch_all(pool.inner())
+            .await
+            .map_err(|e| format!("Failed to get pipeline funnel: {e}"))?;
 
     let mut funnel = PipelineFunnel {
         saved: 0,
@@ -64,12 +65,11 @@ pub async fn get_pipeline_funnel(app: AppHandle) -> Result<PipelineFunnel, Strin
 pub async fn get_response_rate(app: AppHandle) -> Result<f64, String> {
     let pool = app.state::<SqlitePool>();
 
-    let total_applied: i32 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM jobs WHERE applied_at IS NOT NULL",
-    )
-    .fetch_one(pool.inner())
-    .await
-    .map_err(|e| format!("Failed to get response rate: {e}"))?;
+    let total_applied: i32 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM jobs WHERE applied_at IS NOT NULL")
+            .fetch_one(pool.inner())
+            .await
+            .map_err(|e| format!("Failed to get response rate: {e}"))?;
 
     if total_applied == 0 {
         return Ok(0.0);
@@ -144,7 +144,12 @@ pub async fn get_tier_comparison(app: AppHandle) -> Result<TierComparison, Strin
         } else {
             0.0
         };
-        TierStats { applied, responded, interviewing, response_rate }
+        TierStats {
+            applied,
+            responded,
+            interviewing,
+            response_rate,
+        }
     }
 
     let mut tier1 = make_stats(0, 0, 0);

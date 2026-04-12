@@ -4,6 +4,8 @@ description: Use this agent to review developer documentation for accuracy, cons
 color: yellow
 ---
 
+<!-- JCC-specific: overrides global doc-reviewer (different scope — docs/developer/ prose review vs JSDoc/README checks). Knows JCC doc structure and writing-docs.md standards. -->
+
 ## Purpose
 
 Review developer documentation in `docs/developer/` for accuracy, consistency with actual codebase patterns, and overall quality. Identify what needs updating.

@@ -4,6 +4,8 @@ description: Use this agent to validate implementation plans against documented 
 color: blue
 ---
 
+<!-- JCC-specific: no global equivalent. Validates plans against JCC architecture docs (Tauri IPC, state onion, command system, i18n, testing patterns). -->
+
 ## Purpose
 
 Validate implementation plans against the documented architecture patterns in `docs/developer/`. Identify violations, missing steps, and anti-pattern risks.
