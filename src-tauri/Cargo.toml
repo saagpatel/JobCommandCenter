@@ -1,6 +1,6 @@
 [package]
 name = "job-command-center"
-version = "0.1.0"
+version = "1.0.0"
 description = "Job Command Center - automated job search pipeline"
 authors = ["you"]
 edition = "2021"
