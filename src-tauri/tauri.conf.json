@@ -46,11 +46,11 @@
 			"icons/icon.icns",
 			"icons/icon.ico"
 		],
-		"publisher": "Your Name",
+		"publisher": "saagpatel",
 		"category": "DeveloperTool",
 		"shortDescription": "A Tauri React template application",
 		"longDescription": "A modern Tauri React template with comprehensive boilerplate code, TypeScript, Tailwind CSS, and shadcn/ui components.",
-		"copyright": "Copyright © 2025 Your Name. All rights reserved.",
+		"copyright": "© 2026 saagpatel",
 		"macOS": {
 			"frameworks": [],
 			"minimumSystemVersion": "10.15",
