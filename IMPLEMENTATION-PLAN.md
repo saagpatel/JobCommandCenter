@@ -81,7 +81,7 @@ One desktop app runs the entire job search pipeline — from saving a listing to
 | Tracker view                 | Kanban board with drag-drop                               | Matches the existing artifact mental model, intuitive status flow     |
 | Default submission mode      | Dry-run (preview what would be submitted)                 | Safety-first — `--submit` equivalent is a "Confirm & Submit" button   |
 | LinkedIn session persistence | Playwright `launch_persistent_context()` with userDataDir | Login once, reuse session across runs                                 |
-| Claude model for AI features | claude-sonnet-4-20250514                                  | Best balance of speed/quality/cost for email drafts and briefs        |
+| Claude model for AI features | claude-sonnet-4-6                                         | Best balance of speed/quality/cost for email drafts and briefs        |
 | Gmail auth                   | InstalledAppFlow (desktop OAuth2)                         | Standard Google approach for desktop apps, token.json in app data dir |
 
 ---
