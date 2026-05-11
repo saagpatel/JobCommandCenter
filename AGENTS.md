@@ -1,155 +1,85 @@
 # AI Agent Instructions
 
-<!-- comm-contract:start -->
-
-## Communication Contract (Global)
-
-- Follow `/Users/d/.codex/policies/communication/BigPictureReportingV1.md` for all user-facing updates.
-- Use exact section labels from `BigPictureReportingV1.md` for default status/progress updates.
-- Keep default updates beginner-friendly, big-picture, and low-noise.
-- Keep technical details in internal artifacts unless explicitly requested by the user.
-- Honor toggles literally: `simple mode`, `show receipts`, `tech mode`, `debug mode`.
-<!-- comm-contract:end -->
-
 ## Overview
 
 This repository is a template with sensible defaults for building Tauri React apps.
 
+## First Read
+
+- Read `docs/tasks.md` for task management.
+- Review `docs/developer/architecture-guide.md` for high-level patterns.
+- Check `docs/developer/README.md` for the full documentation index.
+- Check git status and project structure before editing.
+- Use `.codex/verify.commands` as the canonical verification source.
+
 ## Core Rules
 
-### New Sessions
+- Use `npm` only. This project does not use `pnpm`.
+- Read files before editing and follow established repo patterns.
+- Keep changes scoped to the requested task.
+- Consider performance, maintainability, and testability for non-trivial changes.
+- Match existing formatting and code style.
+- Write meaningful tests for business logic.
+- Run `npm run check:all` after significant changes when validation is approved.
+- Do not start a dev server unless the user asks for it or says they will run it.
+- Do not commit unless explicitly requested.
+- Update relevant `docs/developer/` files when adding or changing durable patterns.
+- Use Tauri v2 docs only.
+- Use modern Rust formatting: `format!("{variable}")`.
 
-- Read @docs/tasks.md for task management
-- Review `docs/developer/architecture-guide.md` for high-level patterns
-- Check `docs/developer/README.md` for the full documentation index
-- Check git status and project structure
+## Architecture Guardrails
 
-### Development Practices
+- State follows the onion model: component `useState`, global UI state in Zustand, persistent data through TanStack Query.
+- Avoid Zustand destructuring that causes render cascades; use selectors and `getState()` where appropriate. See `docs/developer/state-management.md`.
+- All user actions should flow through the command system. See `docs/developer/architecture-guide.md` and `docs/developer/command-system.md`.
+- Rust and React communicate through typed Tauri commands and events.
+- Use typed commands from `@/lib/tauri-bindings`; do not use string-based `invoke` directly for app commands.
+- Keep UI strings in `/locales/*.json` and use CSS logical properties for RTL support. See `docs/developer/i18n-patterns.md`.
 
-**CRITICAL:** Follow these strictly:
+## Static Analysis And Quality
 
-0. **Use npm only**: This project uses `npm`, NOT `pnpm`. Always use `npm install`, `npm run`, etc.
-1. **Read Before Editing**: Always read files first to understand context
-2. **Follow Established Patterns**: Use patterns from this file and `docs/developer`
-3. **Senior Architect Mindset**: Consider performance, maintainability, testability
-4. **Batch Operations**: Use multiple tool calls in single responses
-5. **Match Code Style**: Follow existing formatting and patterns
-6. **Test Coverage**: Write comprehensive tests for business logic
-7. **Quality Gates**: Run `npm run check:all` after significant changes
-8. **No Dev Server**: Ask user to run and report back
-9. **No Unsolicited Commits**: Only when explicitly requested
-10. **Documentation**: Update relevant `docs/developer/` files for new patterns
-11. **Removing files**: Always use `rm -f`
+- `npm run check:all` is the main quality gate.
+- `check:all` includes TypeScript, ESLint, ast-grep, Prettier check, Rust fmt/clippy, Vitest, and Rust tests.
+- React Compiler handles memoization; do not add manual `useMemo`, `useCallback`, or `React.memo` unless there is a clear local reason.
+- ast-grep enforces architecture patterns such as no Zustand destructuring.
+- knip and jscpd are periodic cleanup tools, not part of `check:all`.
+- See `docs/developer/static-analysis.md` for details.
 
-**CRITICAL:** Use Tauri v2 docs only. Always use modern Rust formatting: `format!("{variable}")`
+## Tauri And Rust
 
-## Architecture Patterns (CRITICAL)
+- Use Tauri v2 patterns.
+- Add Rust commands through the documented tauri-specta flow.
+- Regenerate and commit TypeScript bindings when command surfaces change.
+- See `docs/developer/tauri-commands.md` and `docs/developer/rust-architecture.md`.
 
-### State Management Onion
+## Documentation
 
-```
-useState (component) → Zustand (global UI) → TanStack Query (persistent data)
-```
+- Developer docs live under `docs/developer/`.
+- Update docs when new patterns, systems, commands, or user-visible workflows are introduced.
+- Claude Code-specific commands and agents are contextual tooling references, not universal Codex instructions. See `docs/developer/ai-tooling.md`.
 
-**Decision**: Is data needed across components? → Does it persist between sessions?
+## Codex App Usage
 
-### Performance Pattern (CRITICAL)
+- Use Codex App Projects for repo-specific implementation, review, and verification in this checkout.
+- Use a Worktree when the task changes core architecture, command wiring, Rust/Tauri boundaries, or multiple docs/code surfaces at once.
+- Use the in-app browser or Playwright for UI workflows, responsive behavior, accessibility, and visual checks.
+- Use computer use only for GUI-only desktop behavior that cannot be verified through tests, browser tooling, MCP, or CLI commands.
+- Use artifacts for durable developer notes, screenshots, release packets, and handoff summaries.
+- Keep connectors read-first and task-scoped. Do not pull external context unless it directly supports the current repo task.
+- Keep `.codex/verify.commands` and `npm run check:all` as the verification authority; Codex App tools add evidence but do not replace the repo gate.
 
-```typescript
-// ✅ GOOD: Selector syntax - only re-renders when specific value changes
-const leftSidebarVisible = useUIStore(state => state.leftSidebarVisible)
+## Verification
 
-// ❌ BAD: Destructuring causes render cascades (caught by ast-grep)
-const { leftSidebarVisible } = useUIStore()
+- `.codex/verify.commands` is the canonical verifier for routine Codex work.
+- Current canonical verifier:
+  - `npm ci`
+  - `npm run check:all`
+  - `npm run build`
+- If a command is missing, unclear, or unsafe to run, stop and report the blocker instead of guessing.
 
-// ✅ GOOD: Use getState() in callbacks for current state
-const handleAction = () => {
-  const { data, setData } = useStore.getState()
-  setData(newData)
-}
-```
+## Boundaries
 
-### Static Analysis
-
-- **React Compiler**: Handles memoization automatically - no manual `useMemo`/`useCallback` needed
-- **ast-grep**: Enforces architecture patterns (e.g., no Zustand destructuring). See `docs/developer/static-analysis.md`
-- **Knip/jscpd**: Periodic cleanup tools. Use `/cleanup` command (Claude Code)
-
-### Event-Driven Bridge
-
-- **Rust → React**: `app.emit("event-name", data)` → `listen("event-name", handler)`
-- **React → Rust**: Use typed commands from `@/lib/tauri-bindings` (tauri-specta)
-- **Commands**: All actions flow through centralized command system
-
-### Tauri Command Pattern (tauri-specta)
-
-```typescript
-// ✅ GOOD: Type-safe commands with Result handling
-import { commands } from '@/lib/tauri-bindings'
-
-const result = await commands.loadPreferences()
-if (result.status === 'ok') {
-  console.log(result.data.theme)
-}
-
-// ❌ BAD: String-based invoke (no type safety)
-const prefs = await invoke('load_preferences')
-```
-
-**Adding commands**: See `docs/developer/tauri-commands.md`
-
-### Internationalization (i18n)
-
-```typescript
-// ✅ GOOD: Use useTranslation hook in React components
-import { useTranslation } from 'react-i18next'
-
-function MyComponent() {
-  const { t } = useTranslation()
-  return <h1>{t('myFeature.title')}</h1>
-}
-
-// ✅ GOOD: Non-React contexts - bind for many calls, or use directly
-import i18n from '@/i18n/config'
-const t = i18n.t.bind(i18n)  // Bind once for many translations
-i18n.t('key')                 // Or call directly for occasional use
-```
-
-- **Translations**: All strings in `/locales/*.json`
-- **RTL Support**: Use CSS logical properties (`text-start` not `text-left`)
-- **Adding strings**: See `docs/developer/i18n-patterns.md`
-
-### Documentation & Versions
-
-- **Context7 First**: Always use Context7 for framework docs before WebSearch
-- **Version Requirements**: Tauri v2.x, shadcn/ui v4.x, Tailwind v4.x, React 19.x, Zustand v5.x, Vite v7.x, Vitest v4.x
-
-## Developer Documentation
-
-For complete patterns and detailed guidance, see `docs/developer/README.md`.
-
-Key documents:
-
-- `architecture-guide.md` - Mental models, security, anti-patterns
-- `state-management.md` - State onion, getState() pattern details
-- `tauri-commands.md` - Adding new Rust commands
-- `static-analysis.md` - All linting tools and quality gates
-
-## Claude Code Commands & Agents
-
-These are specific to Claude Code but documented here for context.
-
-### Commands
-
-- `/check` - Check work against architecture, run `npm run check:all`, suggest commit message
-- `/cleanup` - Run static analysis (knip, jscpd, check:all), get structured recommendations
-- `/init` - One-time template initialization
-
-### Agents
-
-Task-focused agents that leverage separate context for focused work:
-
-- `plan-checker` - Validate implementation plans against documented architecture
-- `docs-reviewer` - Review developer docs for accuracy and codebase consistency
-- `userguide-reviewer` - Review user guide against actual system features
-- `cleanup-analyzer` - Analyze static analysis output (used by `/cleanup`)
+- Do not broaden scope into unrelated cleanup.
+- Do not run destructive commands without explicit approval.
+- Do not change package managers.
+- Do not touch secrets, credentials, `.env` files, OAuth files, or build artifacts unless explicitly requested.

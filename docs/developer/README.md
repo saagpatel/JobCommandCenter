@@ -43,6 +43,7 @@ Technical documentation for building and extending this app. These docs describe
 | Document                                              | Description                                             |
 | ----------------------------------------------------- | ------------------------------------------------------- |
 | [Static Analysis](./static-analysis.md)               | ESLint, Prettier, ast-grep, knip, jscpd, React Compiler |
+| [AI Tooling](./ai-tooling.md)                         | Claude Code-specific commands and task-focused agents   |
 | [Writing ast-grep Rules](./writing-ast-grep-rules.md) | AI reference for creating custom rules                  |
 | [Testing](./testing.md)                               | Test patterns, Tauri mocking                            |
 | [Bundle Optimization](./bundle-optimization.md)       | Bundle size management                                  |
