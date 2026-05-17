@@ -178,6 +178,45 @@ job-command-center/
 
 **Phase 1: ATS Adapters**
 
+<!-- portfolio-context:start -->
+# Portfolio Context
+
+## What This Project Is
+
+Job Command Center is a Tauri 2 desktop hub for an automated job-search pipeline. It tracks job listings, drives application submissions across ATS platforms and browser-automated portals, manages Gmail follow-ups, generates interview prep briefs, and reports pipeline analytics through a local app plus Python sidecar.
+
+## Current State
+
+The repo has moved beyond its template origin into a polished v1.0 posture with a documented v1.1 backlog. Phase 0 foundation is complete, and the product shape is centered on the tracker board, submission console, follow-up manager, interview prep, settings, and local sidecar lifecycle.
+
+## Stack
+
+- Tauri 2 desktop app with Rust backend and React 19 + TypeScript + Vite frontend
+- shadcn/ui, Tailwind CSS, Zustand, TanStack Query, and tauri-specta bindings
+- SQLite via Tauri SQL plugin and Rust migrations
+- Python 3.12+ sidecar bundled with PyInstaller and exposed over local FastAPI
+- Playwright, ATS API clients, Gmail API OAuth, Anthropic SDK, and macOS Keychain storage
+
+## How To Run
+
+- Use `npm` only; this repo does not use pnpm.
+- Run the app with the documented npm scripts from `package.json`.
+- Run `npm run check:all` after significant changes.
+- Ask the operator to run the dev server when interactive app feedback is needed.
+
+## Known Risks
+
+- Job-search, Gmail, ATS, profile, and credential data are sensitive; keep credentials in Keychain and out of source.
+- The Python sidecar is bundled and lifecycle-managed by the Rust backend; verify sidecar health after backend or packaging changes.
+- Browser automation for LinkedIn, Indeed, Gem, Workday, and generic ATS flows is fragile and should be tested with real fixtures before shipping.
+- Existing local changes touch the lockfile, sidecar binary, and local Claude skills; do not stage or rewrite them during portfolio context recovery.
+
+## Next Recommended Move
+
+Keep the active local branch focused on the existing lockfile/sidecar cleanup, then use `npm run check:all` and targeted sidecar health checks before changing submission automation, Gmail follow-up, or credential behavior.
+
+<!-- portfolio-context:end -->
+
 - [x] Ashby API adapter with form fetching, field mapping, multipart submit (Session 5)
 - [x] Greenhouse API adapter + Submit Console UI with batch SSE streaming (Session 6)
 
