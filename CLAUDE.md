@@ -4,10 +4,6 @@
 
 A Tauri 2 desktop app that serves as the central hub for an automated job search pipeline. Replaces a Claude.ai React artifact tracker with a full-featured local application. Tracks job listings, automates application submissions across ATS platforms (Ashby, Greenhouse, LinkedIn Easy Apply, Indeed) and browser-automated portals (Gem, Workday), manages follow-up emails via Gmail API, generates interview prep briefs, and provides analytics on the job search pipeline. The submission engine runs as a Python sidecar process bundled via PyInstaller, communicating with the Tauri frontend over a local HTTP API.
 
-## Parent CLAUDE.md scope
-
-The parent file `/Users/d/Projects/CLAUDE.md` contains TypeScript/Node backend rules (Zod, BullMQ, JWT, Prisma, cuid2). It only partially applies here: the React 19 frontend can follow its TS conventions, but the Rust Tauri backend and Python sidecar must NOT inherit those rules (no Zod in Rust, no BullMQ in Python, etc.). When the parent rules conflict with stack reality, the stack wins.
-
 ## Tech Stack
 
 - **Desktop framework:** Tauri 2 (Rust backend + WebView frontend)
