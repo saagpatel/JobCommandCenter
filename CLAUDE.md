@@ -154,7 +154,7 @@ job-command-center/
 
 ## Development Conventions
 
-- **TypeScript:** Strict mode, no `any` types, functional components only
+- **TypeScript:** Strict mode, functional components only
 - **React:** Hooks only, no class components. React Compiler handles memoization (no manual useMemo/useCallback)
 - **State:** Component UI → useState. Cross-component UI → Zustand. Persistent data → TanStack Query + SQLite
 - **Rust commands:** All commands defined via tauri-specta for auto-generated TS bindings. Run `cargo build` to regenerate bindings.
