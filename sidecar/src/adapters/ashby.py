@@ -18,6 +18,7 @@ from src.api.models import (
     SubmissionResult,
 )
 from src.utils.files import expand_path, validate_file
+from src.utils.urls import hostname_matches
 
 logger = structlog.get_logger(__name__)
 
@@ -235,9 +236,9 @@ class AshbyAdapter(BaseAdapter):
             errors.append(f"Expected ats='ashby', got '{job.ats}'")
 
         has_posting_id = bool(job.job_posting_id)
-        has_ashby_url = "ashbyhq.com" in (job.apply_url or "")
+        has_ashby_url = hostname_matches(job.apply_url or "", "ashbyhq.com")
         if not has_posting_id and not has_ashby_url:
-            errors.append("No job_posting_id and apply_url does not contain ashbyhq.com")
+            errors.append("No job_posting_id and apply_url must be hosted on ashbyhq.com")
 
         resume = job.resume_path
         if resume:

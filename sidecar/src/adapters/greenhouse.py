@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import random
-import re
 import time
 import uuid
 from pathlib import Path
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 import structlog
@@ -18,6 +17,7 @@ from src.api.models import (
     SubmissionResult,
 )
 from src.utils.files import expand_path, validate_file
+from src.utils.urls import hostname_matches
 
 logger = structlog.get_logger(__name__)
 
@@ -25,21 +25,8 @@ _GH_BOARDS_API = "https://boards-api.greenhouse.io/v1/boards"
 _MAX_RETRIES = 3
 _REQUEST_TIMEOUT = 30.0
 
-# boards.greenhouse.io/{board_token}/jobs/{job_id}
-_BOARDS_RE = re.compile(
-    r"(?:boards|job-boards)\.greenhouse\.io/([^/]+)/jobs/(\d+)",
-    re.IGNORECASE,
-)
-# {company}.greenhouse.io/jobs/{job_id}
-_SUBDOMAIN_RE = re.compile(
-    r"([^./]+)\.greenhouse\.io/jobs/(\d+)",
-    re.IGNORECASE,
-)
-# Extract subdomain from hostname: {company}.greenhouse.io
-_SUBDOMAIN_HOST_RE = re.compile(
-    r"^([^./]+)\.greenhouse\.io$",
-    re.IGNORECASE,
-)
+_GREENHOUSE_ROOT = "greenhouse.io"
+_GREENHOUSE_BOARDS_HOSTS = {"boards.greenhouse.io", "job-boards.greenhouse.io"}
 
 
 def extract_board_and_job(url: str) -> tuple[str, str]:
@@ -51,30 +38,34 @@ def extract_board_and_job(url: str) -> tuple[str, str]:
       - {company}.greenhouse.io/jobs/{job_id}  (company = board_token)
       - ?gh_jid={job_id}  (query param; board_token taken from host or path)
     """
-    # Query param pattern: ?gh_jid=
     parsed = urlparse(url)
+    host = (parsed.hostname or "").lower().rstrip(".")
+    path_parts = [part for part in parsed.path.split("/") if part]
     qs = parse_qs(parsed.query)
+
     if "gh_jid" in qs:
         job_id = qs["gh_jid"][0]
-        # Try to get board_token from the host (e.g. company.greenhouse.io)
-        m = _SUBDOMAIN_HOST_RE.match(parsed.netloc)
-        if m:
-            return m.group(1), job_id
-        # Fall back: try boards path pattern for board_token only
-        m2 = _BOARDS_RE.search(url)
-        if m2:
-            return m2.group(1), job_id
+        if not job_id.isdigit():
+            raise ValueError(f"Could not extract Greenhouse job_id from URL: {url}")
+        if host in _GREENHOUSE_BOARDS_HOSTS and path_parts:
+            return path_parts[0], job_id
+        if hostname_matches(url, _GREENHOUSE_ROOT) and host not in _GREENHOUSE_BOARDS_HOSTS:
+            return host.removesuffix(f".{_GREENHOUSE_ROOT}"), job_id
         raise ValueError(f"Could not extract board_token from Greenhouse URL with gh_jid: {url}")
 
-    # boards.greenhouse.io or job-boards.greenhouse.io
-    m = _BOARDS_RE.search(url)
-    if m:
-        return m.group(1), m.group(2)
+    if host in _GREENHOUSE_BOARDS_HOSTS and len(path_parts) >= 3 and path_parts[1] == "jobs":
+        job_id = path_parts[2]
+        if job_id.isdigit():
+            return path_parts[0], job_id
 
-    # {company}.greenhouse.io/jobs/{job_id}
-    m = _SUBDOMAIN_RE.search(url)
-    if m:
-        return m.group(1), m.group(2)
+    if (
+        hostname_matches(url, _GREENHOUSE_ROOT)
+        and host not in _GREENHOUSE_BOARDS_HOSTS
+        and len(path_parts) >= 2
+        and path_parts[0] == "jobs"
+        and path_parts[1].isdigit()
+    ):
+        return host.removesuffix(f".{_GREENHOUSE_ROOT}"), path_parts[1]
 
     raise ValueError(f"Could not extract board_token and job_id from Greenhouse URL: {url}")
 
@@ -283,10 +274,10 @@ class GreenhouseAdapter(BaseAdapter):
             errors.append(f"Expected ats='greenhouse', got '{job.ats}'")
 
         has_board_and_id = bool(job.board_token and job.job_posting_id)
-        has_greenhouse_url = "greenhouse.io" in (job.apply_url or "")
+        has_greenhouse_url = hostname_matches(job.apply_url or "", _GREENHOUSE_ROOT)
         if not has_board_and_id and not has_greenhouse_url:
             errors.append(
-                "No board_token+job_posting_id and apply_url does not contain greenhouse.io"
+                "No board_token+job_posting_id and apply_url must be hosted on greenhouse.io"
             )
 
         resume = job.resume_path

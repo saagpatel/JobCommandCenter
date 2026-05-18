@@ -17,6 +17,7 @@ from src.services.playwright_base import (
     upload_file,
 )
 from src.utils.files import expand_path, validate_file
+from src.utils.urls import hostname_matches
 
 logger = structlog.get_logger(__name__)
 
@@ -50,8 +51,8 @@ class LinkedInAdapter(BaseAdapter):
         if job.ats != "linkedin":
             errors.append(f"Expected ats='linkedin', got '{job.ats}'")
 
-        if "linkedin.com" not in (job.apply_url or ""):
-            errors.append("apply_url does not contain linkedin.com")
+        if not hostname_matches(job.apply_url or "", "linkedin.com"):
+            errors.append("apply_url must be hosted on linkedin.com")
 
         resume = job.resume_path
         if resume:
