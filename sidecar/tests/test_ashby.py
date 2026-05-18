@@ -208,7 +208,17 @@ class TestValidate:
     async def test_no_posting_or_url(self, adapter: AshbyAdapter, job: JobListing) -> None:
         bad_job = job.model_copy(update={"apply_url": "https://example.com/jobs", "job_posting_id": None})
         errors = await adapter.validate(bad_job)
-        assert any("ashbyhq.com" in e for e in errors)
+        assert "No job_posting_id and apply_url must be hosted on ashbyhq.com" in errors
+
+    async def test_rejects_lookalike_ashby_host(self, adapter: AshbyAdapter, job: JobListing) -> None:
+        bad_job = job.model_copy(
+            update={
+                "apply_url": "https://evilashbyhq.com/testco/9a60f41c-1df7-4330-bd0c-ba1481a13bbb",
+                "job_posting_id": None,
+            }
+        )
+        errors = await adapter.validate(bad_job)
+        assert "No job_posting_id and apply_url must be hosted on ashbyhq.com" in errors
 
 
 # --- Integration tests (require network) ---

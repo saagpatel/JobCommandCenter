@@ -17,6 +17,7 @@ from src.services.playwright_base import (
     upload_file,
 )
 from src.utils.files import expand_path, validate_file
+from src.utils.urls import hostname_matches
 
 logger = structlog.get_logger(__name__)
 
@@ -50,8 +51,8 @@ class IndeedAdapter(BaseAdapter):
         if job.ats != "indeed":
             errors.append(f"Expected ats='indeed', got '{job.ats}'")
 
-        if "indeed.com" not in (job.apply_url or ""):
-            errors.append("apply_url does not contain indeed.com")
+        if not hostname_matches(job.apply_url or "", "indeed.com"):
+            errors.append("apply_url must be hosted on indeed.com")
 
         resume = job.resume_path
         if resume:
@@ -132,7 +133,7 @@ class IndeedAdapter(BaseAdapter):
             await random_delay(1.0, 2.0)
 
             # Redirect detection: Indeed sometimes bounces straight to external ATS
-            if "indeed.com" not in page.url:
+            if not hostname_matches(page.url, "indeed.com"):
                 if page and not page.is_closed():
                     await page.close()
                 return SubmissionResult(
@@ -169,7 +170,7 @@ class IndeedAdapter(BaseAdapter):
             await random_delay(1.0, 2.0)
 
             # Second redirect check after clicking Apply
-            if "indeed.com" not in page.url:
+            if not hostname_matches(page.url, "indeed.com"):
                 if page and not page.is_closed():
                     await page.close()
                 return SubmissionResult(

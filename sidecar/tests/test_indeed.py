@@ -3,8 +3,6 @@ from __future__ import annotations
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from src.adapters.indeed import IndeedAdapter
 from src.api.models import ApplicantProfile, JobListing
 
@@ -56,7 +54,12 @@ class TestIndeedAdapter:
     async def test_validate_no_indeed_url(self) -> None:
         adapter = IndeedAdapter()
         errors = await adapter.validate(_make_job(apply_url="https://example.com/jobs/123"))
-        assert any("indeed.com" in e for e in errors)
+        assert "apply_url must be hosted on indeed.com" in errors
+
+    async def test_validate_rejects_lookalike_indeed_host(self) -> None:
+        adapter = IndeedAdapter()
+        errors = await adapter.validate(_make_job(apply_url="https://evilindeed.com/viewjob?jk=12345"))
+        assert "apply_url must be hosted on indeed.com" in errors
 
     async def test_validate_missing_resume(self) -> None:
         adapter = IndeedAdapter()
@@ -116,4 +119,4 @@ class TestIndeedAdapter:
 
         assert result.status == "manual_required"
         assert "redirected" in (result.error or "").lower()
-        assert "external-ats.com" in (result.error or "")
+        assert result.error == "Indeed redirected to external ATS: https://external-ats.com/apply/12345"

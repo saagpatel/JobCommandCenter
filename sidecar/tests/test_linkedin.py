@@ -3,8 +3,6 @@ from __future__ import annotations
 import time
 from unittest.mock import MagicMock
 
-import pytest
-
 from src.api.models import ApplicantProfile, JobListing
 from src.adapters.linkedin import LinkedInAdapter
 
@@ -58,7 +56,12 @@ class TestLinkedInAdapter:
     async def test_validate_no_linkedin_url(self) -> None:
         adapter = LinkedInAdapter()
         errors = await adapter.validate(_make_job(apply_url="https://example.com/jobs/123"))
-        assert any("linkedin.com" in e for e in errors)
+        assert "apply_url must be hosted on linkedin.com" in errors
+
+    async def test_validate_rejects_lookalike_linkedin_host(self) -> None:
+        adapter = LinkedInAdapter()
+        errors = await adapter.validate(_make_job(apply_url="https://evillinkedin.com/jobs/view/12345"))
+        assert "apply_url must be hosted on linkedin.com" in errors
 
     async def test_validate_missing_resume(self) -> None:
         adapter = LinkedInAdapter()

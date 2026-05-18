@@ -200,7 +200,20 @@ class TestValidate:
             update={"apply_url": "https://example.com/careers", "board_token": None, "job_posting_id": None}
         )
         errors = await adapter.validate(bad_job)
-        assert any("greenhouse.io" in e for e in errors)
+        assert "No board_token+job_posting_id and apply_url must be hosted on greenhouse.io" in errors
+
+    async def test_rejects_lookalike_greenhouse_host(
+        self, adapter: GreenhouseAdapter, job: JobListing
+    ) -> None:
+        bad_job = job.model_copy(
+            update={
+                "apply_url": "https://evilgreenhouse.io/jobs/4567890",
+                "board_token": None,
+                "job_posting_id": None,
+            }
+        )
+        errors = await adapter.validate(bad_job)
+        assert "No board_token+job_posting_id and apply_url must be hosted on greenhouse.io" in errors
 
     @pytest.mark.asyncio
     async def test_missing_resume(self, adapter: GreenhouseAdapter, job: JobListing) -> None:
