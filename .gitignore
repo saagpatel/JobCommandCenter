@@ -42,3 +42,4 @@ client_secrets.json
 
 # Playwright persistent browser data
 playwright_data/
+CLAUDE.md.bak
