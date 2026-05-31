@@ -14,7 +14,7 @@ A Tauri 2 desktop app that serves as the central hub for an automated job-search
 - **Tauri:** 2.x (from `src-tauri/Cargo.toml`: `tauri = { version = "2", ... }`)
 - **Rust edition:** 2021
 - **IPC type safety:** tauri-specta 2.0.0-rc.21 (auto-generates TS bindings; run `pnpm rust:bindings` after Rust command changes)
-- **Database:** SQLite via `tauri-plugin-sql` (sqlx under the hood); migrations in `src-tauri/src/migrations/`
+- **Database:** SQLite via `sqlx` directly (no tauri-plugin-sql wrapper); migrations in `src-tauri/src/migrations/`
 - **Keychain:** `tauri-plugin-keychain` (Rust side) + `keyring` Python package (sidecar side)
 
 ### Layer 2 — React Frontend
@@ -158,7 +158,7 @@ job-command-center/
 ├── src-tauri/                    # Rust backend
 │   ├── src/
 │   │   ├── commands/             # jobs.rs, notes.rs, analytics.rs,
-│   │   │                         # submissions.rs, followups.rs, sidecar.rs
+│   │   │                         # followups.rs, sidecar.rs, credentials.rs, profile.rs
 │   │   └── migrations/           # SQLite schema migrations
 │   └── binaries/                 # PyInstaller-compiled sidecar (not in git)
 ├── sidecar/                      # Python sidecar source

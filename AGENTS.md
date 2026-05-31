@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository is a template with sensible defaults for building Tauri React apps.
+This repository is Job Command Center — a Tauri 2 desktop application for automating a job-search pipeline. It includes a job tracker (Kanban), ATS submission console (Ashby/Greenhouse API + Playwright for LinkedIn/Indeed/Gem/Workday/Generic), follow-up email manager (Gmail OAuth2), interview prep with Claude AI, and pipeline analytics. A Python sidecar (FastAPI, port 9876) handles browser automation and external API calls.
 
 ## Core Rules
 
@@ -17,14 +17,14 @@ This repository is a template with sensible defaults for building Tauri React ap
 
 **CRITICAL:** Follow these strictly:
 
-0. **Use npm only**: This project uses `npm`, NOT `pnpm`. Always use `npm install`, `npm run`, etc.
+0. **Use pnpm**: This project uses `pnpm` (pnpm-lock.yaml is canonical). Always use `pnpm install`, `pnpm run`, etc. The `package-lock.json` in the repo root is an orphan from the initial scaffold — ignore it.
 1. **Read Before Editing**: Always read files first to understand context
 2. **Follow Established Patterns**: Use patterns from this file and `docs/developer`
 3. **Senior Architect Mindset**: Consider performance, maintainability, testability
 4. **Batch Operations**: Use multiple tool calls in single responses
 5. **Match Code Style**: Follow existing formatting and patterns
 6. **Test Coverage**: Write comprehensive tests for business logic
-7. **Quality Gates**: Run `npm run check:all` after significant changes
+7. **Quality Gates**: Run `pnpm run check:all` after significant changes
 8. **No Dev Server**: Ask user to run and report back
 9. **No Unsolicited Commits**: Only when explicitly requested
 10. **Documentation**: Update relevant `docs/developer/` files for new patterns

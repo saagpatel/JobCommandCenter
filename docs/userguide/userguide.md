@@ -2,7 +2,7 @@
 
 ## Getting Started
 
-Welcome! This guide covers the core features available in the app.
+Welcome! Job Command Center automates your job-search pipeline — tracking listings, submitting applications, managing follow-up emails, and preparing for interviews. This guide covers all available features.
 
 ## Keyboard Shortcuts
 
@@ -62,4 +62,32 @@ The app checks for updates automatically:
 
 ---
 
-_This user guide should be expanded as new features are added to the app._
+## Job Search Features
+
+### Job Tracker
+
+The main view (left sidebar → **Tracker**) shows a Kanban board of your job applications. Each card represents one job. Drag cards between columns to update status. Click a card to open the detail panel, where you can add notes and view history.
+
+### Submission Console
+
+The **Submit** view lets you queue and submit applications in batch. Select jobs with status _Applied_ or _Ready_, choose the ATS platform, and click **Submit**. Progress streams in real time via SSE. Ashby and Greenhouse submit via their APIs; LinkedIn, Indeed, Gem, Workday, and Generic use a headed browser session (requires Playwright Chromium installed).
+
+### Follow-up Manager
+
+The **Follow-ups** view shows emails due for follow-up, grouped by job. Click a row to review or edit the AI-drafted message, then send via Gmail. Sending requires completing the Gmail OAuth2 flow in **Settings → Credentials**.
+
+### Interview Prep
+
+The **Interview** view shows a notes editor and an AI brief for the selected job. Click **Generate Brief** to call Claude AI (requires an Anthropic API key in **Settings → Credentials**). Briefs summarize the company, role, and likely interview topics.
+
+### Analytics
+
+The **Analytics** view shows pipeline funnel metrics, submission counts by ATS platform, and response rate trends. Data is read from the local SQLite database and updates automatically.
+
+### Settings
+
+Open **Settings** from the left sidebar or the command palette:
+
+- **Profile** — your name, email, phone, and resume path used to populate ATS forms
+- **Credentials** — API keys and OAuth tokens (stored in macOS Keychain, never on disk or in SQLite)
+- **Platforms** — enable/disable ATS platforms and configure per-platform options
