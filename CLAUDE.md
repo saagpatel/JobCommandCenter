@@ -76,9 +76,9 @@ The repo has moved beyond its template origin into a polished v1.0 posture with 
 
 ## How To Run
 
-- Use `npm` only; this repo does not use pnpm.
-- Run the app with the documented npm scripts from `package.json`.
-- Run `npm run check:all` after significant changes.
+- Use `pnpm`. This repo does not use `npm` — see the Gotchas section above.
+- Run the app with the documented pnpm scripts from `package.json`.
+- Run `pnpm run check:all` after significant changes.
 - Ask the operator to run the dev server when interactive app feedback is needed.
 
 ## Known Risks
@@ -90,6 +90,6 @@ The repo has moved beyond its template origin into a polished v1.0 posture with 
 
 ## Next Recommended Move
 
-Keep the active local branch focused on the existing lockfile/sidecar cleanup, then use `npm run check:all` and targeted sidecar health checks before changing submission automation, Gmail follow-up, or credential behavior.
+Keep the active local branch focused on the existing lockfile/sidecar cleanup, then use `pnpm run check:all` and targeted sidecar health checks before changing submission automation, Gmail follow-up, or credential behavior.
 
 <!-- portfolio-context:end -->

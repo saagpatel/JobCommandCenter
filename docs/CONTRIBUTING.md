@@ -6,7 +6,7 @@ Thank you for your interest in contributing!
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18+)
+- [Node.js](https://nodejs.org/) (v20+)
 - [Rust](https://rustup.rs/) (latest stable)
 - Familiarity with React, TypeScript, and Rust
 
@@ -15,9 +15,9 @@ Thank you for your interest in contributing!
 ```bash
 git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
 cd YOUR_REPO
-npm install
-npm run dev
-npm run check:all
+pnpm install
+pnpm run dev
+pnpm run check:all
 ```
 
 ## How to Contribute
@@ -33,7 +33,7 @@ npm run check:all
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
 3. Make changes following the guidelines below
-4. Ensure checks pass: `npm run check:all`
+4. Ensure checks pass: `pnpm run check:all`
 5. Commit using conventional commits
 6. Push and open a Pull Request
 
@@ -60,7 +60,7 @@ All PRs must pass:
 - Rust formatting and clippy
 - Tests
 
-Run locally: `npm run check:all`
+Run locally: `pnpm run check:all`
 
 ## Commit Messages
 
