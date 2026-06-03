@@ -1,16 +1,6 @@
-# Tauri React Template
+# Job Command Center
 
-A "batteries-included" template for building production-ready desktop applications with **Tauri v2**, **React**, and **TypeScript**. Designed with opinionated patterns that help both human developers and AI coding agents build well-architected apps from the start.
-
-## Why This Template?
-
-Most Tauri starters give you a blank canvas. This template gives you a **working application** with patterns already established:
-
-- **Type-safe Rust-TypeScript bridge** via tauri-specta.
-- **Performance patterns enforced by tooling** - all the usual linting plus ast-grep for common anti-patterns
-- **Multi-window architecture** already working (quick pane with global shortcut as a demo)
-- **Cross-platform ready** with platform-specific title bars, window controls, and native menu integration
-- **i18n built-in** with RTL support
+A Tauri 2 desktop hub for an automated job-search pipeline. Tracks job listings, drives application submissions across ATS platforms (Ashby, Greenhouse) and browser-automated portals (LinkedIn, Indeed, Gem, Workday), manages Gmail follow-ups, generates interview-prep briefs, and reports pipeline analytics.
 
 ## Stack
 
@@ -19,95 +9,76 @@ Most Tauri starters give you a blank canvas. This template gives you a **working
 | Frontend | React 19, TypeScript, Vite 7                    |
 | UI       | shadcn/ui v4, Tailwind CSS v4, Lucide React     |
 | State    | Zustand v5, TanStack Query v5                   |
-| Backend  | Tauri v2, Rust                                  |
-| Testing  | Vitest v4, Testing Library                      |
+| Desktop  | Tauri v2, Rust, SQLite (sqlx)                   |
+| Sidecar  | Python 3.12, FastAPI (port 9876)                |
+| Testing  | Vitest v4, Testing Library, pytest              |
 | Quality  | ESLint, Prettier, ast-grep, knip, jscpd, clippy |
 
-## What's Already Built
+## What's Built (v1.0)
 
-The template includes a working application with these features implemented:
+### Job Tracking
 
-### Core Features
+- **Tracker Board** — Kanban board with drag-and-drop across Saved, Applied, Interviewing, Offer, and Rejected columns.
+- **Job Detail Panel** — Per-job notes, submission history, file links, and follow-up timeline.
+- **Add Job Modal** — Company, role, ATS type, apply URL, tier, and source.
 
-- **Command Palette** (`Cmd+K`) - Searchable command launcher with keyboard navigation
-- **Quick Pane** - Global shortcut (`Cmd+Shift+.`) opens a floating window from any app, even fullscreen. Uses native NSPanel on macOS for proper fullscreen overlay behavior.
-- **Keyboard Shortcuts** - Platform-aware shortcuts with automatic menu integration
-- **Native Menus** - File, Edit, View menus built from JavaScript with full i18n support
-- **Preferences System** - Settings dialog with Rust-side persistence, React hooks, and type-safe access throughout
-- **Collapsible Sidebars** - Empty left and right sidebars with state persistence via resizable panels
-- **Theme System** - Light/dark mode with system preference detection, synced across windows
-- **Notifications** - Toast notifications for in-app feedback, plus native system notifications
-- **Auto-updates** - Tauri updater plugin configured with GitHub Releases integration and update checking on launch
-- **Logging** - Structured logging utilities for both Rust and TypeScript with consistent formatting
-- **Crash Recovery** - Emergency data persistence for recovering unsaved work after unexpected exits
+### Application Submission
 
-### Architecture Patterns
+- **Ashby adapter** — API-direct submission with dry-run preview and field mapping.
+- **Greenhouse adapter** — API-direct submission with automatic field detection.
+- **LinkedIn Easy Apply** — Playwright automation with AI-assisted field mapping and pause-before-submit.
+- **Indeed, Gem, Workday, Generic adapters** — Playwright form automation with CAPTCHA-pause mode.
+- **Submit Console** — Batch submission UI with real-time SSE streaming and per-job status.
 
-- **Three-layer state management** - Clear decision tree: `useState` (component) → `Zustand` (global UI) → `TanStack Query` (persistent data "not owned by the app)
-- **Event-driven Rust-React bridge** - Menus, shortcuts, and command palette all route through the same command system
-- **React Compiler** - Automatic memoization means no manual `useMemo`/`useCallback` needed
+### Intelligence
 
-### Cross-Platform
+- **Follow-up Manager** — Auto-schedules follow-ups at +7 days after Apply, drafts via Claude AI, sends via Gmail OAuth.
+- **Interview Prep** — AI-generated brief (company overview, likely questions, talking points) auto-triggered on status → Interviewing.
+- **Analytics Dashboard** — Applications by week, pipeline funnel, response rate, days-to-response, ATS breakdown.
 
-| Platform | Title Bar            | Window Controls | Bundle Format |
-| -------- | -------------------- | --------------- | ------------- |
-| macOS    | Custom with vibrancy | Traffic lights  | `.dmg`        |
-| Windows  | Custom               | Right side      | `.msi`        |
-| Linux    | Native + toolbar     | Native          | `.AppImage`   |
+### Infrastructure
 
-Platform detection utilities, platform-specific UI strings ("Reveal in Finder" vs "Show in Explorer"), and separate Tauri configs per platform are all set up.
-
-### Developer Experience
-
-- **Type-safe Tauri commands** - tauri-specta generates TypeScript bindings from Rust, with full autocomplete and compile-time checking
-- **Static analysis** - ESLint, Prettier, ast-grep (architecture enforcement), knip (unused code), jscpd (duplication)
-- **Single quality gate** - `npm run check:all` runs TypeScript, ESLint, Prettier, ast-grep, clippy, and all tests
-- **Testing patterns** - Vitest setup with Tauri command mocking
-
-## Tauri Plugins Included
-
-| Plugin            | Purpose                          |
-| ----------------- | -------------------------------- |
-| single-instance   | Prevent multiple app instances   |
-| window-state      | Remember window position/size    |
-| fs                | File system access               |
-| dialog            | Native open/save dialogs         |
-| notification      | System notifications             |
-| clipboard-manager | Clipboard access                 |
-| global-shortcut   | System-wide keyboard shortcuts   |
-| updater           | In-app auto-updates              |
-| opener            | Open URLs/files with default app |
-| tauri-nspanel     | macOS floating panel behavior    |
-
-## AI-Ready Development
-
-This template is designed to work well with AI coding agents like Claude Code:
-
-- **Comprehensive documentation** in `docs/developer/` covering all patterns. Human readable but really designed to explain the "why" of certain patterns to AI agents. Not slop.
-- **Claude Code integration** - Custom commands (`/check`, `/cleanup`) and a couple of specialized agents
-- **Sensible file organization** - React code in `src/` with clear separation (components, hooks, stores, services), Rust in `src-tauri/src/` with modular command organization. Predictable structure for both humans and AI.
+- **Python sidecar** — FastAPI on `127.0.0.1:9876`, started and health-monitored by the Rust backend. Hosts the submission engine, Playwright sessions, Gmail OAuth, and Anthropic SDK.
+- **Credentials vault** — ATS credentials and API keys stored in macOS Keychain.
+- **Profile management** — Contact info and resume path used to pre-fill submission forms.
+- **Command Palette** (`Cmd+K`), **Quick Pane** (`Cmd+Shift+.`), theme, preferences, native menus, auto-updates.
 
 ## Getting Started
 
-See **[Using This Template](docs/USING_THIS_TEMPLATE.md)** for setup instructions and workflow guidance.
+### Prerequisites
 
-### Quick Start
+- Node.js 20+ and pnpm
+- Rust (latest stable) — [rustup.rs](https://rustup.rs/)
+- Python 3.12+
 
 ```bash
-# Prerequisites: Node.js 18+, Rust (latest stable)
-# See https://tauri.app/start/prerequisites/ for platform-specific deps
+# Install JS dependencies
+pnpm install
 
-git clone <your-repo>
-cd your-app
-npm install
-npm run dev
+# Install Python sidecar
+cd sidecar && pip install -e ".[test]" && cd ..
+
+# One-time: install Playwright browser
+playwright install chromium
+
+# Run quality gate
+pnpm run check:all
 ```
+
+Ask the operator to start the dev server (`pnpm run tauri:dev`) when interactive feedback is needed.
+
+### Credentials Setup
+
+- **Anthropic API key** — Settings → Credentials (stored in macOS Keychain)
+- **Ashby API key** — Settings → Credentials (stored in macOS Keychain)
+- **Gmail** — Place `client_secrets.json` at `~/.jcc/gmail/client_secrets.json` (OAuth2, `gmail.send` scope)
 
 ## Documentation
 
-- **[Developer Docs](docs/developer/)** - Architecture, patterns, and detailed guides
-- **[User Guide](docs/userguide/)** - End-user documentation template
-- **[Using This Template](docs/USING_THIS_TEMPLATE.md)** - Setup and workflow guide
+- **[Developer Docs](docs/developer/)** — Architecture, patterns, and detailed guides
+- **[User Guide](docs/userguide/)** — End-user documentation
+- **[LinkedIn Bot Detection](docs/LINKEDIN-BOT-DETECTION.md)** — Notes on handling LinkedIn automation challenges
+- **[Changelog](CHANGELOG.md)** — Release history
 
 ## License
 

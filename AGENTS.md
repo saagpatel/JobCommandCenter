@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository is a template with sensible defaults for building Tauri React apps.
+This repository is **Job Command Center** — a Tauri 2 desktop hub for an automated job-search pipeline (job tracker, ATS submission adapters, Gmail follow-ups, interview prep, analytics). Forked from dannysmith/tauri-template.
 
 ## First Read
 
@@ -14,13 +14,13 @@ This repository is a template with sensible defaults for building Tauri React ap
 
 ## Core Rules
 
-- Use `npm` only. This project does not use `pnpm`.
+- Use `pnpm`. This project does not use `npm`.
 - Read files before editing and follow established repo patterns.
 - Keep changes scoped to the requested task.
 - Consider performance, maintainability, and testability for non-trivial changes.
 - Match existing formatting and code style.
 - Write meaningful tests for business logic.
-- Run `npm run check:all` after significant changes when validation is approved.
+- Run `pnpm run check:all` after significant changes when validation is approved.
 - Do not start a dev server unless the user asks for it or says they will run it.
 - Do not commit unless explicitly requested.
 - Update relevant `docs/developer/` files when adding or changing durable patterns.
@@ -38,7 +38,7 @@ This repository is a template with sensible defaults for building Tauri React ap
 
 ## Static Analysis And Quality
 
-- `npm run check:all` is the main quality gate.
+- `pnpm run check:all` is the main quality gate.
 - `check:all` includes TypeScript, ESLint, ast-grep, Prettier check, Rust fmt/clippy, Vitest, and Rust tests.
 - React Compiler handles memoization; do not add manual `useMemo`, `useCallback`, or `React.memo` unless there is a clear local reason.
 - ast-grep enforces architecture patterns such as no Zustand destructuring.
@@ -72,9 +72,9 @@ This repository is a template with sensible defaults for building Tauri React ap
 
 - `.codex/verify.commands` is the canonical verifier for routine Codex work.
 - Current canonical verifier:
-  - `npm ci`
-  - `npm run check:all`
-  - `npm run build`
+  - `pnpm install --frozen-lockfile`
+  - `pnpm run check:all`
+  - `pnpm run build`
 - If a command is missing, unclear, or unsafe to run, stop and report the blocker instead of guessing.
 
 ## Boundaries
