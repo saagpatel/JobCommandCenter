@@ -93,3 +93,8 @@ The repo has moved beyond its template origin into a polished v1.0 posture with 
 Keep the active local branch focused on the existing lockfile/sidecar cleanup, then use `pnpm run check:all` and targeted sidecar health checks before changing submission automation, Gmail follow-up, or credential behavior.
 
 <!-- portfolio-context:end -->
+
+<!-- secondbrain-breadcrumb -->
+## SecondBrain knowledge vault
+
+Prior lessons, decisions, and context for this project live in SecondBrain at `wiki/maps/projects/job-command-center.md`. The whole vault is searchable via the `engraph` MCP — query it for this project + its stack before non-trivial work.

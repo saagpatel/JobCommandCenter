@@ -83,3 +83,8 @@ This repository is **Job Command Center** — a Tauri 2 desktop hub for an autom
 - Do not run destructive commands without explicit approval.
 - Do not change package managers.
 - Do not touch secrets, credentials, `.env` files, OAuth files, or build artifacts unless explicitly requested.
+
+<!-- secondbrain-breadcrumb -->
+## SecondBrain knowledge vault
+
+Prior lessons, decisions, and context for this project live in SecondBrain at `wiki/maps/projects/job-command-center.md`. The whole vault is searchable via the `engraph` MCP — query it for this project + its stack before non-trivial work.
