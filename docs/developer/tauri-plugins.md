@@ -4,6 +4,10 @@ Guide to all Tauri plugins installed in this app, plus built-in features and gui
 
 ## Installed Plugins
 
+Capability review marker: `local-first-tauri-capability-reviewed`
+
+The broad-looking permissions in `src-tauri/capabilities/default.json` are intentional for the current desktop feature set. Keep this section updated whenever capability permissions change.
+
 ### Core Functionality
 
 | Plugin              | Purpose                                 | Frontend Package                  |
@@ -36,6 +40,21 @@ Guide to all Tauri plugins installed in this app, plus built-in features and gui
 | Plugin            | Purpose               | Platform   |
 | ----------------- | --------------------- | ---------- |
 | **tauri-nspanel** | Native panel behavior | macOS only |
+
+## Capability Permission Rationale
+
+| Permission                  | Why it is present                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| `clipboard-manager:default` | Command palette and edit/context-menu flows need copy/paste integration.                   |
+| `dialog:default`            | Profile and tracker surfaces open native file pickers for local resume and document paths. |
+| `fs:default`                | Local-only profile, recovery, and document-path workflows require scoped file operations.  |
+| `notification:default`      | Follow-up reminders and command feedback can use native notifications with toast fallback. |
+| `process:default`           | The updater flow can relaunch after an accepted update.                                    |
+| `os:default`                | Platform and locale detection drive desktop-specific UI behavior.                          |
+| `global-shortcut:default`   | Quick-pane activation uses a system-wide shortcut.                                         |
+| `updater:default`           | Desktop release flow checks signed update metadata.                                        |
+
+Do not add new filesystem, shell, process, updater, notification, shortcut, clipboard, or dialog permissions without updating this table and the relevant feature docs.
 
 ## Plugin Usage Patterns
 
