@@ -16,8 +16,7 @@ The release system provides:
 ### 1. Generate Signing Keys
 
 ```bash
-npm install -g @tauri-apps/cli
-tauri signer generate -w ~/.tauri/myapp.key
+pnpm exec tauri signer generate -w ~/.tauri/job-command-center.key
 # Outputs private key (saved) and public key (displayed)
 ```
 
@@ -25,7 +24,7 @@ tauri signer generate -w ~/.tauri/myapp.key
 
 Add these secrets (Settings → Secrets and variables → Actions):
 
-- `TAURI_PRIVATE_KEY`: Content of `~/.tauri/myapp.key`
+- `TAURI_PRIVATE_KEY`: Content of `~/.tauri/job-command-center.key`
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: Password you set (if any)
 
 ### 3. Update Configuration
@@ -38,10 +37,10 @@ Add these secrets (Settings → Secrets and variables → Actions):
     "updater": {
       "active": true,
       "endpoints": [
-        "https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest/download/latest.json"
+        "https://github.com/saagpatel/JobCommandCenter/releases/latest/download/latest.json"
       ],
       "dialog": false,
-      "pubkey": "YOUR_PUBLIC_KEY_FROM_STEP_1"
+      "pubkey": "<public key from signer generate>"
     }
   }
 }
@@ -49,21 +48,22 @@ Add these secrets (Settings → Secrets and variables → Actions):
 
 **Bundle info in `tauri.conf.json`:**
 
-- Update `publisher`, `shortDescription`, `longDescription`
-- Update `productName` and `identifier`
+- Set `bundle.createUpdaterArtifacts` to `true`
+- Set `plugins.updater.active` to `true`
+- Add the generated public key to `plugins.updater.pubkey`
 
 ## Release Process
 
 ### Simple Method
 
 ```bash
-npm run release:prepare v1.0.0
+pnpm run release:prepare v1.0.0
 ```
 
 This will:
 
 1. Check git status is clean
-2. Run all quality checks (`npm run check:all`)
+2. Run all quality checks (`pnpm run check:all`)
 3. Update versions in `package.json`, `Cargo.toml`, `tauri.conf.json`
 4. Ask if you want to commit and push
 
@@ -80,7 +80,7 @@ Finally, manually publish the draft release on GitHub.
 
 ```bash
 # Update versions in package.json, Cargo.toml, tauri.conf.json
-npm run check:all
+pnpm run check:all
 git add .
 git commit -m "chore: release v1.0.0"
 git tag v1.0.0
@@ -173,9 +173,9 @@ All updates are cryptographically signed:
 
 ## Troubleshooting
 
-| Issue                    | Solution                                              |
-| ------------------------ | ----------------------------------------------------- |
-| Workflow doesn't trigger | Ensure tag starts with `v` and is pushed              |
-| Build fails              | Check GitHub secrets, run `npm run check:all` locally |
-| Updates not detected     | Verify endpoint URL and public key match              |
-| Download fails           | Check signatures, file permissions, disk space        |
+| Issue                    | Solution                                               |
+| ------------------------ | ------------------------------------------------------ |
+| Workflow doesn't trigger | Ensure tag starts with `v` and is pushed               |
+| Build fails              | Check GitHub secrets, run `pnpm run check:all` locally |
+| Updates not detected     | Verify endpoint URL and public key match               |
+| Download fails           | Check signatures, file permissions, disk space         |

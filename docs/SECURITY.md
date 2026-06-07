@@ -11,7 +11,8 @@
 
 Do not report security vulnerabilities through public GitHub issues.
 
-**Contact**: YOUR_SECURITY_EMAIL
+**Contact**: Use GitHub private vulnerability reporting at
+<https://github.com/saagpatel/JobCommandCenter/security/advisories/new>.
 
 Include:
 
@@ -34,7 +35,7 @@ This app uses Tauri's security model:
 - **Permissions**: Minimal system permissions via `capabilities/`
 - **IPC**: Type-safe commands via tauri-specta
 - **File Access**: Scoped to app directories by default
-- **CSP**: Configured in `index.html`
+- **CSP**: Configured in `src-tauri/tauri.conf.json`
 
 ## For Developers
 
@@ -53,13 +54,13 @@ std::fs::write(user_input, data)
 ### Secrets
 
 - Never commit secrets to version control
-- Use `.env.local` (gitignored) for local secrets
+- Store app credentials in macOS Keychain, not SQLite, config files, or `.env`
 - Use GitHub Secrets for CI/CD
 
 ### Dependency Audits
 
 ```bash
-npm audit
+pnpm audit
 cargo audit
 ```
 

@@ -14,6 +14,7 @@ Evidence: `src-tauri/Cargo.toml:2-3`, `src-tauri/tauri.conf.json:2`, `CHANGELOG.
 The `README.md` title and entire framing described the upstream template ("Tauri React Template — a batteries-included template for building production-ready desktop applications") rather than the actual deployed application. The `AGENTS.md` Overview said "This repository is a template with sensible defaults for building Tauri React apps."
 
 **Fixed:**
+
 - `README.md`: Replaced the template title and framing with the actual app name and description ("Job Command Center — Tauri 2 desktop hub for an automated job-search pipeline").
 - `AGENTS.md` Overview: Replaced "template" identity with the correct app description.
 
@@ -27,6 +28,7 @@ Evidence: `src/components/tracker/`, `src/components/submit/`, `src/components/f
 `README.md` listed only the template infrastructure features (Command Palette, Quick Pane, Preferences, etc.) and omitted all ten sessions of JCC v1.0 work: Tracker Board, all seven ATS adapters, Submit Console, Follow-up Manager, Interview Prep, Analytics Dashboard. The `docs/userguide/userguide.md` similarly described only template features, with no mention of the actual application's views.
 
 **Fixed:**
+
 - `README.md` "What's Built" section: replaced template feature list with the full JCC v1.0 feature set.
 - `docs/userguide/userguide.md`: complete rewrite from template placeholder to JCC user guide covering Tracker, Submit Console, Follow-up Manager, Interview Prep, Analytics, and Settings.
 
@@ -42,6 +44,7 @@ Evidence: `package.json:128-133` (pnpm config), `sidecar/pyproject.toml`, `src-t
 `README.md` Stack table showed only the frontend and desktop layers, omitting the Python sidecar. It also showed "Tauri v2, Rust" without naming the database layer. The actual stack includes a Python 3.12 FastAPI sidecar (port 9876) with Playwright, Anthropic SDK, Gmail OAuth, and ATS clients, plus SQLite via sqlx (not tauri-plugin-sql as originally planned).
 
 **Fixed:**
+
 - `README.md` Stack table: added Sidecar row (Python 3.12, FastAPI), updated Desktop row to name SQLite/sqlx.
 
 ---
@@ -53,16 +56,16 @@ Evidence: `package.json:127-133` (pnpm `onlyBuiltDependencies` key present), `CL
 
 Multiple docs stated the package manager is `npm` when it is actually `pnpm`:
 
-| File | Old claim | Fixed to |
-|---|---|---|
-| `README.md` Quick Start | `npm install` | `pnpm install` |
-| `AGENTS.md` Core Rules | "Use `npm` only. This project does not use `pnpm`." | "Use `pnpm`. This project does not use `npm`." |
-| `AGENTS.md` Static Analysis | `npm run check:all` | `pnpm run check:all` |
-| `AGENTS.md` Verification | `npm ci` / `npm run check:all` / `npm run build` | pnpm equivalents |
-| `CLAUDE.md` Portfolio Context "How To Run" | "Use `npm` only; this repo does not use pnpm." | "Use `pnpm`." |
-| `CLAUDE.md` Portfolio Context "Next Recommended Move" | `npm run check:all` | `pnpm run check:all` |
-| `docs/CONTRIBUTING.md` Setup | `npm install` / `npm run dev` / `npm run check:all` | pnpm equivalents |
-| `docs/CONTRIBUTING.md` Quality Gates | `npm run check:all` | `pnpm run check:all` |
+| File                                                  | Old claim                                           | Fixed to                                       |
+| ----------------------------------------------------- | --------------------------------------------------- | ---------------------------------------------- |
+| `README.md` Quick Start                               | `npm install`                                       | `pnpm install`                                 |
+| `AGENTS.md` Core Rules                                | "Use `npm` only. This project does not use `pnpm`." | "Use `pnpm`. This project does not use `npm`." |
+| `AGENTS.md` Static Analysis                           | `npm run check:all`                                 | `pnpm run check:all`                           |
+| `AGENTS.md` Verification                              | `npm ci` / `npm run check:all` / `npm run build`    | pnpm equivalents                               |
+| `CLAUDE.md` Portfolio Context "How To Run"            | "Use `npm` only; this repo does not use pnpm."      | "Use `pnpm`."                                  |
+| `CLAUDE.md` Portfolio Context "Next Recommended Move" | `npm run check:all`                                 | `pnpm run check:all`                           |
+| `docs/CONTRIBUTING.md` Setup                          | `npm install` / `npm run dev` / `npm run check:all` | pnpm equivalents                               |
+| `docs/CONTRIBUTING.md` Quality Gates                  | `npm run check:all`                                 | `pnpm run check:all`                           |
 
 Also fixed: `docs/CONTRIBUTING.md` listed Node.js v18+ as a prerequisite; `package.json:9` specifies `"node": ">=20.0.0"`. Fixed to v20+.
 
@@ -94,89 +97,19 @@ Evidence: `CLAUDE.md:53-55` (v1.1 backlog list).
 
 ---
 
-## Contradictions for Manual Review
+## Follow-Up Cleanup Status
 
-These are drifts in files outside the editable scope (`README.md`, `CLAUDE.md`, `AGENTS.md`, `DOC-RECONCILIATION.md`, `docs/`). A human should apply the listed fix.
+The local-first app checklist adoption pass resolved the concrete manual-review drift that remained after the original reconciliation:
 
-### `.codex/verify.commands` — wrong package manager
+- `.codex/verify.commands` uses `pnpm install --frozen-lockfile`, `pnpm run check:all`, and `pnpm run build`.
+- `src-tauri/tauri.conf.json` uses pnpm build hooks and product-specific Job Command Center bundle descriptions.
+- The configured updater endpoint points at `https://github.com/saagpatel/JobCommandCenter/releases/latest/download/latest.json`.
+- `docs/USING_THIS_TEMPLATE.md` was removed.
+- `docs/CONTRIBUTING.md` uses the real repository URL and pnpm setup commands.
+- `docs/SECURITY.md` uses GitHub private vulnerability reporting, points CSP documentation at `src-tauri/tauri.conf.json`, and keeps secrets guidance aligned with macOS Keychain.
+- `CLAUDE.md` names `sqlx` as the SQLite layer.
 
-**Path:** `.codex/verify.commands:2-4`
-
-```
-npm ci
-npm run check:all
-npm run build
-```
-
-**Should be:**
-```
-pnpm install --frozen-lockfile
-pnpm run check:all
-pnpm run build
-```
-
-The project uses pnpm. These commands will fail with a missing `npm ci` equivalent and a stale `package-lock.json`.
-
----
-
-### `src-tauri/tauri.conf.json` — template placeholders and wrong descriptions
-
-**Path:** `src-tauri/tauri.conf.json:51-54`
-
-```json
-"shortDescription": "A Tauri React template application",
-"longDescription": "A modern Tauri React template with comprehensive boilerplate code...",
-```
-
-**Should be:** Descriptions matching the actual app (Job Command Center, automated job-search pipeline).
-
-**Path:** `src-tauri/tauri.conf.json:67`
-
-```
-"https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest/download/latest.json"
-```
-
-**Should be:** The actual GitHub releases endpoint for this repo. The auto-updater will not work until this is filled in.
-
----
-
-### `docs/USING_THIS_TEMPLATE.md` — template setup doc should be removed
-
-**Path:** `docs/USING_THIS_TEMPLATE.md:3`
-
-> "This document is specific to the template and should be deleted once you're comfortable with your new project."
-
-The file's own first paragraph says to delete it. Since the project is at v1.0, this file is now dead weight. A human should delete it.
-
----
-
-### `docs/CONTRIBUTING.md` — template GitHub URL placeholder
-
-**Path:** `docs/CONTRIBUTING.md:16`
-
-```
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
-```
-
-**Should be:** The actual GitHub URL for this repo. Cannot be determined from code; unverifiable.
-
----
-
-### `docs/SECURITY.md` — email placeholder
-
-**Path:** `docs/SECURITY.md` (not read in full, but `docs/USING_THIS_TEMPLATE.md:52` notes it contains `YOUR_SECURITY_EMAIL` placeholder).
-
-**Should be:** A real security contact email.
-
----
-
-### `CLAUDE.md` — "tauri-plugin-sql" vs sqlx
-
-**Path:** `CLAUDE.md:7`
-
-> "SQLite CRUD via tauri-plugin-sql"
-
-**Actual:** `src-tauri/Cargo.toml:39` shows `sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio"] }` — no `tauri-plugin-sql` dependency. The original `IMPLEMENTATION-ROADMAP.md` planned for `tauri-plugin-sql` but `sqlx` was used instead. This is a minor architectural description inaccuracy in the main CLAUDE.md body; left unchanged here because it does not affect functionality guidance, but a human may want to correct the label.
+**Remaining release gate:** The auto-updater is intentionally disabled until a real Tauri signing key exists. Re-enable `bundle.createUpdaterArtifacts` and `plugins.updater.active` only after adding the generated public key to `src-tauri/tauri.conf.json` and the private key to GitHub Actions secrets.
 
 ---
 
