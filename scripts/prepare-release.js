@@ -35,7 +35,7 @@ async function prepareRelease() {
 
   if (!version || !version.match(/^v?\d+\.\d+\.\d+$/)) {
     console.error('❌ Usage: node scripts/prepare-release.js v1.0.0')
-    console.error('   or: npm run prepare-release v1.0.0')
+    console.error('   or: pnpm run release:prepare v1.0.0')
     process.exit(1)
   }
 
@@ -60,7 +60,7 @@ async function prepareRelease() {
 
     // Run all checks first
     console.log('\n🔍 Running pre-release checks...')
-    exec('npm run check:all')
+    exec('pnpm run check:all')
     console.log('✅ All checks passed')
 
     // Update package.json
@@ -97,9 +97,9 @@ async function prepareRelease() {
     )
     console.log(`   ${oldTauriVersion} → ${cleanVersion}`)
 
-    // Run npm install to update lock files
+    // Run pnpm install to update lock files
     console.log('\n📦 Updating lock files...')
-    exec('npm install', { silent: true })
+    exec('pnpm install --lockfile-only', { silent: true })
     console.log('✅ Lock files updated')
 
     // Verify configurations
@@ -159,10 +159,10 @@ async function prepareRelease() {
 
       console.log(`\n🎊 Release ${tagVersion} has been published!`)
       console.log(
-        '📱 Check GitHub Actions: https://github.com/YOUR_USERNAME/YOUR_REPO/actions'
+        '📱 Check GitHub Actions: https://github.com/saagpatel/JobCommandCenter/actions'
       )
       console.log(
-        '📦 Draft release will appear at: https://github.com/YOUR_USERNAME/YOUR_REPO/releases'
+        '📦 Draft release will appear at: https://github.com/saagpatel/JobCommandCenter/releases'
       )
       console.log(
         '\n⚠️  Remember: You need to manually publish the draft release on GitHub!'

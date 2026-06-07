@@ -50,15 +50,15 @@ Select jobs from the Tracker and submit them in batch.
 
 ### ATS Adapters
 
-| Platform   | Method            | Notes                                          |
-| ---------- | ----------------- | ---------------------------------------------- |
-| Ashby      | API               | Requires Ashby API key in Settings → Credentials |
-| Greenhouse | API               | Public GETs; POST may require API key          |
-| LinkedIn   | Playwright        | Login first in Settings → Platforms; pauses before final submit |
-| Indeed     | Playwright        | Login first in Settings → Platforms            |
-| Gem        | Playwright        | Standard form fill                             |
-| Workday    | Playwright        | Multi-page flow; returns manual_required on CAPTCHA |
-| Generic    | Playwright        | Heuristic label matching with Claude AI fallback |
+| Platform   | Method     | Notes                                                           |
+| ---------- | ---------- | --------------------------------------------------------------- |
+| Ashby      | API        | Requires Ashby API key in Settings → Credentials                |
+| Greenhouse | API        | Public GETs; POST may require API key                           |
+| LinkedIn   | Playwright | Login first in Settings → Platforms; pauses before final submit |
+| Indeed     | Playwright | Login first in Settings → Platforms                             |
+| Gem        | Playwright | Standard form fill                                              |
+| Workday    | Playwright | Multi-page flow; returns manual_required on CAPTCHA             |
+| Generic    | Playwright | Heuristic label matching with Claude AI fallback                |
 
 ## Follow-up Manager
 

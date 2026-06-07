@@ -5,9 +5,9 @@
   "identifier": "com.jcc.app",
   "build": {
     "removeUnusedCommands": false,
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "pnpm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "pnpm run build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -36,7 +36,7 @@
     "macOSPrivateApi": true
   },
   "bundle": {
-    "createUpdaterArtifacts": true,
+    "createUpdaterArtifacts": false,
     "active": true,
     "targets": "all",
     "icon": [
@@ -48,8 +48,8 @@
     ],
     "publisher": "saagpatel",
     "category": "DeveloperTool",
-    "shortDescription": "A Tauri React template application",
-    "longDescription": "A modern Tauri React template with comprehensive boilerplate code, TypeScript, Tailwind CSS, and shadcn/ui components.",
+    "shortDescription": "Local-first job search command center",
+    "longDescription": "A Tauri 2 desktop hub for tracking job opportunities, coordinating ATS submissions, managing follow-ups, preparing interviews, and reviewing pipeline analytics.",
     "copyright": "© 2026 saagpatel",
     "macOS": {
       "frameworks": [],
@@ -62,12 +62,12 @@
   },
   "plugins": {
     "updater": {
-      "active": true,
+      "active": false,
       "endpoints": [
-        "https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest/download/latest.json"
+        "https://github.com/saagpatel/JobCommandCenter/releases/latest/download/latest.json"
       ],
       "dialog": true,
-      "pubkey": "YOUR_UPDATER_PUBLIC_KEY_HERE"
+      "pubkey": ""
     }
   }
 }

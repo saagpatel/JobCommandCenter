@@ -32,10 +32,10 @@ if self._pw_manager and not self._pw_manager.session_exists("linkedin"):
 
 ### 2. Hard rate limits (session-level)
 
-| Limit | Value | Effect |
-|---|---|---|
-| `_MAX_PER_SESSION` | 10 | App must be restarted after 10 submissions |
-| `_MIN_INTERVAL_SECONDS` | 180 | Forced 3-minute wait between submissions |
+| Limit                   | Value | Effect                                     |
+| ----------------------- | ----- | ------------------------------------------ |
+| `_MAX_PER_SESSION`      | 10    | App must be restarted after 10 submissions |
+| `_MIN_INTERVAL_SECONDS` | 180   | Forced 3-minute wait between submissions   |
 
 Both checks return `SubmissionResult(status="failed", error="…")` before any
 browser action runs. Volume-based detection has an explicit ceiling.
@@ -44,14 +44,14 @@ browser action runs. Volume-based detection has an explicit ceiling.
 
 Every Playwright interaction is wrapped in `random_delay(min, max)`:
 
-| Action | Delay |
-|---|---|
-| After page navigation | `1.0–2.0s` |
+| Action                     | Delay      |
+| -------------------------- | ---------- |
+| After page navigation      | `1.0–2.0s` |
 | Before clicking Easy Apply | `0.3–0.8s` |
-| After clicking Easy Apply | `1.0–2.0s` |
-| Between modal steps | `0.5–1.0s` |
-| After file upload | `1.0–2.0s` |
-| After Submit click | `2.0–3.0s` |
+| After clicking Easy Apply  | `1.0–2.0s` |
+| Between modal steps        | `0.5–1.0s` |
+| After file upload          | `1.0–2.0s` |
+| After Submit click         | `2.0–3.0s` |
 
 No back-to-back synthetic clicks; cadence resembles a slow human.
 
@@ -76,6 +76,7 @@ fabrication.
 ### 6. Failure evidence captured (debugging, not evasion)
 
 `screenshot_on_failure(page, …)` captures the page state when:
+
 - The adapter exhausts `max_steps = 10` without reaching the Submit button.
 - An exception bubbles up (e.g., a selector wasn't found).
 
@@ -94,6 +95,7 @@ the adapter will hit failures here first.
 If LinkedIn injects a verification challenge after the Easy Apply button is
 clicked (e.g., "verify you're not a robot"), the adapter has no recognizer
 and no handler. The flow will:
+
 1. Time out waiting for the modal's expected `div[role="dialog"]`, OR
 2. Find the modal but exhaust `max_steps` without reaching Submit, OR
 3. Throw an exception when a Continue/Submit selector isn't found.
