@@ -239,6 +239,13 @@ pub fn run() {
                     .await
                     .map_err(|e| format!("Failed to enable foreign keys: {e}"))?;
 
+                // Give concurrent app/database work a short retry window instead of failing
+                // immediately when SQLite is briefly locked.
+                sqlx::query("PRAGMA busy_timeout=5000")
+                    .execute(&pool)
+                    .await
+                    .map_err(|e| format!("Failed to set SQLite busy timeout: {e}"))?;
+
                 // Run migrations
                 for sql in MIGRATIONS {
                     let result = sqlx::query(sql).execute(&pool).await;

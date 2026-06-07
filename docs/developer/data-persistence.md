@@ -23,8 +23,9 @@ All data goes through Rust for type safety and security. Use TanStack Query on t
 
 ## File Locations
 
-```
-~/Library/Application Support/com.myapp.app/  (macOS)
+```text
+~/Library/Application Support/com.jobcommandcenter.app/  (macOS)
+├── jcc.db                                    # SQLite database
 ├── preferences.json                          # App preferences
 └── recovery/                                 # Emergency data
     └── *.json
@@ -138,7 +139,7 @@ Follow the pattern in `src-tauri/src/commands/preferences.rs`:
 Add to `src-tauri/src/bindings.rs` and regenerate bindings:
 
 ```bash
-npm run rust:bindings
+pnpm run rust:bindings
 ```
 
 ### 4. Create React hooks
@@ -168,92 +169,73 @@ if filename.contains("..") || filename.contains("/") || filename.contains("\\") 
 
 Use Tauri's `app_data_dir()` for safe storage locations - never write to arbitrary paths.
 
-## SQLite Database (When Needed)
+## SQLite Database
 
-> **Note:** SQLite is not installed in this app. Add it when your app needs relational data with queries.
+Job Command Center uses SQLite through `sqlx` for relational job-search data. The database is created at `app.path().app_data_dir()/jcc.db` during Tauri startup in `src-tauri/src/lib.rs`, then managed as a `SqlitePool` for Rust command handlers.
 
-### When to Use SQLite
+### What Uses SQLite
 
-| Use Case                         | Recommendation     |
-| -------------------------------- | ------------------ |
-| Simple key-value settings        | Preferences System |
-| User data with relationships     | SQLite             |
-| Data requiring complex queries   | SQLite             |
-| Large datasets (1000+ records)   | SQLite             |
-| Data needing atomic transactions | SQLite             |
+| Use Case                        | Recommendation     |
+| ------------------------------- | ------------------ |
+| Simple key-value settings       | Preferences System |
+| Job records and status tracking | SQLite via `sqlx`  |
+| Submissions and adapter results | SQLite via `sqlx`  |
+| Follow-ups, prep tasks, notes   | SQLite via `sqlx`  |
+| Analytics and dashboard queries | SQLite via `sqlx`  |
 
-### Approach Options
+### Runtime Settings
 
-| Approach   | Use When                                              |
-| ---------- | ----------------------------------------------------- |
-| `rusqlite` | Simpler setup, synchronous queries, smaller apps      |
-| `sqlx`     | Async queries, compile-time SQL checking, larger apps |
+The startup path applies these database settings before migrations run:
 
-Both integrate with Tauri commands and tauri-specta for type safety.
+- `PRAGMA journal_mode=WAL` for better concurrent read/write behavior.
+- `PRAGMA foreign_keys=ON` so relational constraints are enforced.
+- `PRAGMA busy_timeout=5000` so short-lived writer contention retries before failing.
 
-### Setup (rusqlite)
-
-```bash
-cd src-tauri && cargo add rusqlite --features bundled
-```
+Migrations are idempotent SQL statements stored in `MIGRATIONS` in `src-tauri/src/lib.rs`. Startup runs them before managing the pool as Tauri state. Duplicate-column migration errors are skipped intentionally for additive migrations that may already be present.
 
 ### Architecture Pattern
 
 Tauri commands wrap database operations, TanStack Query provides frontend caching.
 
-```
-React Component → TanStack Query → Tauri Command (rusqlite) → SQLite
+```text
+React Component -> TanStack Query -> Tauri Command (sqlx) -> SQLite
 ```
 
 ```rust
-use rusqlite::{Connection, params};
-use std::sync::Mutex;
-use tauri::State;
-
-// Database connection managed as Tauri state
-pub struct DbConnection(pub Mutex<Connection>);
+use sqlx::SqlitePool;
+use tauri::{AppHandle, Manager};
 
 #[tauri::command]
 #[specta::specta]
-pub fn get_items(db: State<DbConnection>) -> Result<Vec<Item>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
-    let mut stmt = conn
-        .prepare("SELECT id, name, created_at FROM items ORDER BY created_at DESC")
-        .map_err(|e| e.to_string())?;
-
-    let items = stmt
-        .query_map([], |row| {
-            Ok(Item {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                created_at: row.get(2)?,
-            })
-        })
-        .map_err(|e| e.to_string())?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| e.to_string())?;
-
-    Ok(items)
+pub async fn get_jobs(app: AppHandle) -> Result<Vec<Job>, String> {
+    let pool = app.state::<SqlitePool>();
+    sqlx::query_as::<_, Job>("SELECT * FROM jobs ORDER BY updated_at DESC")
+        .fetch_all(&*pool)
+        .await
+        .map_err(|e| e.to_string())
 }
 ```
 
 Initialize in `src-tauri/src/lib.rs`:
 
 ```rust
-let db_path = app.path().app_data_dir()?.join("app.db");
-let conn = Connection::open(&db_path)?;
+let db_path = app_data_dir.join("jcc.db");
+let db_url = format!("sqlite:{}?mode=rwc", db_path.display());
 
-// Run migrations
-conn.execute(
-    "CREATE TABLE IF NOT EXISTS items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )",
-    [],
-)?;
+let pool = SqlitePoolOptions::new()
+    .max_connections(5)
+    .connect(&db_url)
+    .await?;
 
-app.manage(DbConnection(Mutex::new(conn)));
+sqlx::query("PRAGMA journal_mode=WAL").execute(&pool).await?;
+sqlx::query("PRAGMA foreign_keys=ON").execute(&pool).await?;
+sqlx::query("PRAGMA busy_timeout=5000").execute(&pool).await?;
+
+for sql in MIGRATIONS {
+    sqlx::query(sql).execute(&pool).await?;
+}
+
+app.manage(pool);
 ```
 
 ```typescript
@@ -278,4 +260,5 @@ export function useAddItem() {
 
 - Run migrations at app startup before managing database state
 - Use `IF NOT EXISTS` / `IF EXISTS` for idempotent migrations
-- For complex apps, consider a version table to track applied migrations
+- Keep additive migrations safe to rerun; handle duplicate-column cases deliberately
+- Keep SQLite access in Rust command modules using `sqlx::SqlitePool`
