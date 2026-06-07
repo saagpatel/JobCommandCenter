@@ -4,7 +4,7 @@ Tauri 2 desktop hub for an automated job-search pipeline. Tracks listings, drive
 
 ## Stack & architecture
 
-Three layers: a **Tauri 2 Rust backend** (SQLite CRUD via tauri-plugin-sql, sidecar lifecycle, Keychain) ↔ a **React 19 + TypeScript + Vite frontend** (shadcn/ui, Tailwind, Zustand for UI state, TanStack Query for SQLite data, tauri-specta bindings) ↔ a **Python 3.12 FastAPI sidecar** (PyInstaller-bundled) reachable over local HTTP on **port 9876**, holding the submission engine (httpx ATS clients + Playwright), Gmail OAuth2, and the Anthropic SDK. Forked from dannysmith/tauri-template. Local data dir: `~/job-search-2026/`.
+Three layers: a **Tauri 2 Rust backend** (SQLite CRUD via sqlx, sidecar lifecycle, Keychain) ↔ a **React 19 + TypeScript + Vite frontend** (shadcn/ui, Tailwind, Zustand for UI state, TanStack Query for SQLite data, tauri-specta bindings) ↔ a **Python 3.12 FastAPI sidecar** (PyInstaller-bundled) reachable over local HTTP on **port 9876**, holding the submission engine (httpx ATS clients + Playwright), Gmail OAuth2, and the Anthropic SDK. Forked from dannysmith/tauri-template. Local data dir: `~/job-search-2026/`.
 
 ## Build / test / run
 
@@ -14,7 +14,7 @@ pnpm install --frozen-lockfile   # CI-equivalent install
 pnpm test
 pnpm tsc --noEmit
 cargo build               # also regenerates tauri-specta TS bindings
-npm run check:all         # aggregate check script
+pnpm run check:all        # aggregate check script
 playwright install chromium   # one-time, user-run during setup (browsers are not bundled)
 ```
 
@@ -22,7 +22,7 @@ Ask the operator to run the dev server when interactive app feedback is needed.
 
 ## Gotchas
 
-- **Package manager is pnpm, not npm.** `pnpm-lock.yaml` is authoritative and CI runs `pnpm install --frozen-lockfile`; `package-lock.json` is an orphan from the template. The auto-generated portfolio-context block below still claims "npm only" — that claim is wrong; trust this section. (The block regenerates from memory each auditor run, so the contradiction may reappear until the generator reads CI as ground truth.)
+- **Package manager is pnpm, not npm.** `pnpm-lock.yaml` is authoritative and CI/release runs `pnpm install --frozen-lockfile`; do not regenerate an npm lockfile.
 - **Credentials live in macOS Keychain only** — never in config files, SQLite, or `.env`.
 - **Never auto-submit or auto-send.** Application submit defaults to a dry-run preview requiring explicit confirmation; follow-up emails always present a draft for user review before send.
 - **Playwright runs headed, not headless** (reduces bot detection); browsers are user-installed via `playwright install chromium`, not bundled.
@@ -42,13 +42,13 @@ Ask the operator to run the dev server when interactive app feedback is needed.
 
 ## Key decisions
 
-| Decision | Choice | Why |
-|---|---|---|
-| Desktop framework | Tauri 2 (not Electron) | 10–20 MB vs 200 MB+, native macOS feel, Rust perf |
-| Sidecar language | Python | Best Playwright + Anthropic SDK + Gmail API support |
-| Sidecar transport | Local HTTP (FastAPI on :9876) | Streaming responses for real-time UI; auto API docs |
-| ATS strategy | API-first (Ashby, Greenhouse), Playwright fallback | API is faster and immune to DOM changes |
-| Database | SQLite via tauri-plugin-sql | Local-first, migrations in Rust, React Query caching |
+| Decision          | Choice                                             | Why                                                  |
+| ----------------- | -------------------------------------------------- | ---------------------------------------------------- |
+| Desktop framework | Tauri 2 (not Electron)                             | 10–20 MB vs 200 MB+, native macOS feel, Rust perf    |
+| Sidecar language  | Python                                             | Best Playwright + Anthropic SDK + Gmail API support  |
+| Sidecar transport | Local HTTP (FastAPI on :9876)                      | Streaming responses for real-time UI; auto API docs  |
+| ATS strategy      | API-first (Ashby, Greenhouse), Playwright fallback | API is faster and immune to DOM changes              |
+| Database          | SQLite via sqlx                                    | Local-first, migrations in Rust, React Query caching |
 
 ## v1.1 backlog
 
@@ -95,6 +95,7 @@ Keep the active local branch focused on the existing lockfile/sidecar cleanup, t
 <!-- portfolio-context:end -->
 
 <!-- secondbrain-breadcrumb -->
+
 ## SecondBrain knowledge vault
 
 Prior lessons, decisions, and context for this project live in SecondBrain at `wiki/maps/projects/job-command-center.md`. The whole vault is searchable via the `engraph` MCP — query it for this project + its stack before non-trivial work.

@@ -66,7 +66,7 @@ This repository is **Job Command Center** — a Tauri 2 desktop hub for an autom
 - Use computer use only for GUI-only desktop behavior that cannot be verified through tests, browser tooling, MCP, or CLI commands.
 - Use artifacts for durable developer notes, screenshots, release packets, and handoff summaries.
 - Keep connectors read-first and task-scoped. Do not pull external context unless it directly supports the current repo task.
-- Keep `.codex/verify.commands` and `npm run check:all` as the verification authority; Codex App tools add evidence but do not replace the repo gate.
+- Keep `.codex/verify.commands` and `pnpm run check:all` as the verification authority; Codex App tools add evidence but do not replace the repo gate.
 
 ## Verification
 
@@ -85,6 +85,7 @@ This repository is **Job Command Center** — a Tauri 2 desktop hub for an autom
 - Do not touch secrets, credentials, `.env` files, OAuth files, or build artifacts unless explicitly requested.
 
 <!-- secondbrain-breadcrumb -->
+
 ## SecondBrain knowledge vault
 
 Prior lessons, decisions, and context for this project live in SecondBrain at `wiki/maps/projects/job-command-center.md`. The whole vault is searchable via the `engraph` MCP — query it for this project + its stack before non-trivial work.
