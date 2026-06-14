@@ -98,6 +98,9 @@ export default tseslint.config(
     ignores: [
       'dist/**',
       'node_modules/**',
+      'sidecar/.venv/**',
+      'sidecar/.pytest_cache/**',
+      'sidecar/jcc_sidecar.egg-info/**',
       'src-tauri/target/**',
       'src-tauri/gen/**',
       '*.config.js',

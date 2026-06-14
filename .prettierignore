@@ -5,6 +5,11 @@ node_modules/
 dist/
 build/
 
+# Python sidecar generated artifacts
+sidecar/.venv/
+sidecar/.pytest_cache/
+sidecar/jcc_sidecar.egg-info/
+
 # Tauri build artifacts
 src-tauri/target/
 src-tauri/gen/
