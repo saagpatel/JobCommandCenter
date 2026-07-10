@@ -42,6 +42,8 @@ sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio"] }
 uuid = { version = "1", features = ["v7"] }
 # SHA-256 for VAP packet artifact integrity / STALE detection
 sha2 = "0.10"
+# Ed25519 verification of VAP packet manifest signatures (already in tree via tauri)
+ring = "0.17"
 chrono = { version = "0.4", features = ["serde"] }
 tokio = { version = "1", features = ["sync", "process"] }
 

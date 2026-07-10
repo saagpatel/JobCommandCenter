@@ -13,6 +13,7 @@
 
 use std::path::Path;
 
+use ring::signature::{UnparsedPublicKey, ED25519};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use specta::Type;
@@ -40,6 +41,19 @@ struct VapManifest {
     source: ManifestSource,
     truth: ManifestTruth,
     artifacts: Vec<ManifestArtifact>,
+    #[serde(default)]
+    signature: Option<ManifestSignature>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct ManifestSignature {
+    alg: String,
+    /// Hex of the 32-byte Ed25519 public key.
+    public_key: String,
+    /// SHA-256 fingerprint of `public_key`.
+    public_key_id: String,
+    /// Hex of the 64-byte signature over the signing payload.
+    signature: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -72,6 +86,10 @@ pub struct VerifiedPacket {
     pub source_platform: String,
     pub truth_status: String,
     pub stale_artifacts: Vec<String>,
+    /// True when a valid Ed25519 signature was present and verified.
+    pub signed: bool,
+    /// Signing key fingerprint, if the manifest carried a signature block.
+    pub public_key_id: Option<String>,
     pub resume_path: Option<String>,
     pub cover_letter_path: Option<String>,
 }
@@ -87,9 +105,72 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
         .collect()
 }
 
-/// Read and verify a `packet.manifest.json`. Refuses unknown schema versions;
-/// otherwise re-hashes every artifact to classify the packet's truth status.
-pub fn verify_manifest(manifest_path: &Path) -> Result<VerifiedPacket, String> {
+fn from_hex(s: &str) -> Result<Vec<u8>, String> {
+    let s = s.trim();
+    if s.len() % 2 != 0 {
+        return Err("odd-length hex string".to_string());
+    }
+    (0..s.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&s[i..i + 2], 16).map_err(|e| e.to_string()))
+        .collect()
+}
+
+/// Reconstruct the exact bytes ApplyKit's Ed25519 signature covers. MUST byte-match
+/// ApplyKit's `manifest::signing_payload`: schema + packet_id + sorted artifact
+/// hashes + truth verdict, newline-joined. See ApplyKit docs/vap-manifest-v1.md.
+fn signing_payload(manifest: &VapManifest) -> Vec<u8> {
+    let mut lines = vec![
+        format!("schema={}", manifest.schema_version),
+        format!("packet_id={}", manifest.packet_id),
+    ];
+    let mut artifact_lines: Vec<String> = manifest
+        .artifacts
+        .iter()
+        .map(|a| format!("artifact\0{}\0{}", a.path, a.sha256))
+        .collect();
+    artifact_lines.sort();
+    lines.extend(artifact_lines);
+    lines.push(format!("truth_passed={}", manifest.truth.passed));
+    lines.join("\n").into_bytes()
+}
+
+/// Verify a manifest's embedded Ed25519 signature over [`signing_payload`].
+/// True only if the block is present, well-formed, its fingerprint matches the
+/// embedded key, and the signature validates. Proves integrity; pin
+/// `public_key_id` to also assert provenance.
+fn verify_signature(manifest: &VapManifest) -> bool {
+    let Some(block) = &manifest.signature else {
+        return false;
+    };
+    if block.alg != "ed25519" {
+        return false;
+    }
+    let Ok(public_key) = from_hex(&block.public_key) else {
+        return false;
+    };
+    if sha256_hex(&public_key) != block.public_key_id {
+        return false;
+    }
+    let Ok(signature) = from_hex(&block.signature) else {
+        return false;
+    };
+    UnparsedPublicKey::new(&ED25519, &public_key)
+        .verify(&signing_payload(manifest), &signature)
+        .is_ok()
+}
+
+/// Read and verify a `packet.manifest.json`. Refuses unknown schema versions and,
+/// when `expected_public_key_id` is set, packets not signed by that trusted key.
+/// Re-hashes every artifact and verifies the Ed25519 signature to classify status.
+///
+/// `truth_status`: `verified` requires a valid signature, intact artifacts, and a
+/// passing truth gate. On-disk edits are `stale` (re-run ApplyKit); an absent or
+/// invalid signature, or a non-passing gate, is `unverified`.
+pub fn verify_manifest(
+    manifest_path: &Path,
+    expected_public_key_id: Option<&str>,
+) -> Result<VerifiedPacket, String> {
     let raw = std::fs::read_to_string(manifest_path)
         .map_err(|e| format!("Failed to read manifest {}: {e}", manifest_path.display()))?;
     let manifest: VapManifest =
@@ -103,12 +184,26 @@ pub fn verify_manifest(manifest_path: &Path) -> Result<VerifiedPacket, String> {
         ));
     }
 
+    // Provenance pin: if the caller trusts a specific signing key, refuse any
+    // packet not signed by exactly that key before doing anything else.
+    if let Some(expected) = expected_public_key_id {
+        let matches = manifest
+            .signature
+            .as_ref()
+            .is_some_and(|b| b.public_key_id == expected);
+        if !matches {
+            return Err(format!(
+                "Packet is not signed by the trusted key (expected {expected})"
+            ));
+        }
+    }
+
     let packet_dir = manifest_path
         .parent()
         .ok_or_else(|| "Manifest path has no parent directory".to_string())?;
 
     // Re-hash each artifact; a mismatch or missing file means STALE (edited after
-    // generation). This is the integrity check the "verified" badge rests on.
+    // generation). This is the on-disk integrity check.
     let mut stale_artifacts = Vec::new();
     for artifact in &manifest.artifacts {
         let path = packet_dir.join(&artifact.path);
@@ -118,9 +213,13 @@ pub fn verify_manifest(manifest_path: &Path) -> Result<VerifiedPacket, String> {
         }
     }
 
+    // Cryptographic proof that the manifest (and thus its artifact hashes and
+    // verdict) is authentic and unaltered.
+    let signature_valid = verify_signature(&manifest);
+
     let truth_status = if !stale_artifacts.is_empty() {
         STATUS_STALE
-    } else if manifest.truth.passed {
+    } else if signature_valid && manifest.truth.passed {
         STATUS_VERIFIED
     } else {
         STATUS_UNVERIFIED
@@ -135,6 +234,7 @@ pub fn verify_manifest(manifest_path: &Path) -> Result<VerifiedPacket, String> {
     };
     let resume_path = resolve("resume_1pg").or_else(|| resolve("resume_2pg"));
     let cover_letter_path = resolve("cover_note");
+    let public_key_id = manifest.signature.as_ref().map(|b| b.public_key_id.clone());
 
     Ok(VerifiedPacket {
         packet_id: manifest.packet_id,
@@ -144,6 +244,8 @@ pub fn verify_manifest(manifest_path: &Path) -> Result<VerifiedPacket, String> {
         source_platform: manifest.source.source_platform,
         truth_status: truth_status.to_string(),
         stale_artifacts,
+        signed: signature_valid,
+        public_key_id,
         resume_path,
         cover_letter_path,
     })
@@ -201,6 +303,9 @@ pub struct ImportPacketInput {
     pub apply_url: String,
     /// ATS identifier for the posting (e.g. `ashby`, `greenhouse`, `linkedin`).
     pub ats: String,
+    /// Optional trusted signing-key fingerprint. When set, packets not signed by
+    /// exactly this key are refused (provenance pinning).
+    pub expected_public_key_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -209,6 +314,10 @@ pub struct ImportPacketResult {
     pub packet_id: String,
     pub truth_status: String,
     pub stale_artifacts: Vec<String>,
+    /// True when a valid Ed25519 signature was present and verified.
+    pub signed: bool,
+    /// Signing key fingerprint, if the manifest carried a signature.
+    pub public_key_id: Option<String>,
 }
 
 /// Verify a VAP manifest and import it as a tracked job. Never submits.
@@ -218,7 +327,10 @@ pub async fn import_packet(
     app: AppHandle,
     input: ImportPacketInput,
 ) -> Result<ImportPacketResult, String> {
-    let verified = verify_manifest(Path::new(&input.manifest_path))?;
+    let verified = verify_manifest(
+        Path::new(&input.manifest_path),
+        input.expected_public_key_id.as_deref(),
+    )?;
     let pool = app.state::<SqlitePool>();
     let id = insert_job_from_packet(pool.inner(), &verified, &input.apply_url, &input.ats).await?;
     let job = fetch_job(pool.inner(), &id).await?;
@@ -227,14 +339,80 @@ pub async fn import_packet(
         packet_id: verified.packet_id,
         truth_status: verified.truth_status,
         stale_artifacts: verified.stale_artifacts,
+        signed: verified.signed,
+        public_key_id: verified.public_key_id,
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ring::signature::{Ed25519KeyPair, KeyPair};
     use sqlx::sqlite::SqlitePoolOptions;
     use std::path::PathBuf;
+
+    const TEST_SEED: [u8; 32] = [7u8; 32];
+
+    fn to_hex(bytes: &[u8]) -> String {
+        bytes.iter().map(|b| format!("{b:02x}")).collect()
+    }
+
+    fn test_keypair() -> Ed25519KeyPair {
+        Ed25519KeyPair::from_seed_unchecked(&TEST_SEED).expect("keypair")
+    }
+
+    fn manifest_value(resume_body: &str, passed: bool) -> serde_json::Value {
+        serde_json::json!({
+            "schema_version": "vap/1",
+            "packet_id": "sha256:abc123",
+            "source": { "company": "Acme", "role": "Senior Engineer", "source_platform": "LinkedIn" },
+            "truth": { "passed": passed },
+            "artifacts": [
+                { "role": "resume_1pg", "path": "Resume_1pg_Tailored.md",
+                  "sha256": sha256_hex(resume_body.as_bytes()), "format": "md" }
+            ]
+        })
+    }
+
+    /// Add a valid signature block (test key) to a manifest value; returns the
+    /// key fingerprint. Signs over the production `signing_payload`, proving the
+    /// ApplyKit (ed25519-dalek) and JCC (ring) payloads interoperate.
+    fn sign_manifest_value(value: &mut serde_json::Value) -> String {
+        let manifest: VapManifest = serde_json::from_value(value.clone()).expect("parse to sign");
+        let payload = signing_payload(&manifest);
+        let keypair = test_keypair();
+        let public_key = keypair.public_key().as_ref().to_vec();
+        let signature = keypair.sign(&payload);
+        let public_key_id = sha256_hex(&public_key);
+        value["signature"] = serde_json::json!({
+            "alg": "ed25519",
+            "public_key": to_hex(&public_key),
+            "public_key_id": public_key_id,
+            "signature": to_hex(signature.as_ref()),
+        });
+        public_key_id
+    }
+
+    fn write_manifest(dir: &Path, value: &serde_json::Value) -> PathBuf {
+        let path = dir.join("packet.manifest.json");
+        std::fs::write(&path, serde_json::to_string_pretty(value).unwrap())
+            .expect("write manifest");
+        path
+    }
+
+    /// Write a signed packet dir; returns (manifest_path, key fingerprint).
+    fn write_signed_packet(dir: &Path, resume_body: &str, passed: bool) -> (PathBuf, String) {
+        std::fs::write(dir.join("Resume_1pg_Tailored.md"), resume_body).expect("write resume");
+        let mut value = manifest_value(resume_body, passed);
+        let public_key_id = sign_manifest_value(&mut value);
+        (write_manifest(dir, &value), public_key_id)
+    }
+
+    /// Write an unsigned packet dir (no signature block).
+    fn write_unsigned_packet(dir: &Path, resume_body: &str) -> PathBuf {
+        std::fs::write(dir.join("Resume_1pg_Tailored.md"), resume_body).expect("write resume");
+        write_manifest(dir, &manifest_value(resume_body, true))
+    }
 
     /// Minimal jobs table matching the columns import writes + reads.
     const TEST_JOBS_DDL: &str = "CREATE TABLE jobs (
@@ -262,51 +440,66 @@ mod tests {
         pool
     }
 
-    /// Write a packet dir with one resume + a manifest referencing it by true hash.
-    fn write_packet(dir: &Path, resume_body: &str, passed: bool) -> PathBuf {
-        let resume = dir.join("Resume_1pg_Tailored.md");
-        std::fs::write(&resume, resume_body).expect("write resume");
-        let manifest = serde_json::json!({
-            "schema_version": "vap/1",
-            "packet_id": "sha256:abc123",
-            "source": { "company": "Acme", "role": "Senior Engineer", "source_platform": "LinkedIn" },
-            "truth": { "passed": passed },
-            "artifacts": [
-                { "role": "resume_1pg", "path": "Resume_1pg_Tailored.md",
-                  "sha256": sha256_hex(resume_body.as_bytes()), "format": "md" }
-            ]
-        });
-        let manifest_path = dir.join("packet.manifest.json");
-        std::fs::write(
-            &manifest_path,
-            serde_json::to_string_pretty(&manifest).unwrap(),
-        )
-        .expect("write manifest");
-        manifest_path
-    }
-
     #[test]
-    fn verify_intact_packet_is_verified() {
+    fn verify_intact_signed_packet_is_verified() {
         let dir = tempfile::tempdir().expect("tmp");
-        let manifest_path = write_packet(dir.path(), "original resume", true);
-        let v = verify_manifest(&manifest_path).expect("verify");
+        let (manifest_path, key_id) = write_signed_packet(dir.path(), "original resume", true);
+        let v = verify_manifest(&manifest_path, None).expect("verify");
         assert_eq!(v.truth_status, STATUS_VERIFIED);
+        assert!(v.signed, "signature must verify");
+        assert_eq!(v.public_key_id.as_deref(), Some(key_id.as_str()));
         assert!(v.stale_artifacts.is_empty());
         assert_eq!(v.company, "Acme");
         assert!(v.resume_path.is_some());
     }
 
     #[test]
+    fn verify_unsigned_packet_is_unverified() {
+        let dir = tempfile::tempdir().expect("tmp");
+        let manifest_path = write_unsigned_packet(dir.path(), "original resume");
+        let v = verify_manifest(&manifest_path, None).expect("verify");
+        assert_eq!(
+            v.truth_status, STATUS_UNVERIFIED,
+            "no signature => not verified"
+        );
+        assert!(!v.signed);
+        assert!(v.public_key_id.is_none());
+    }
+
+    #[test]
     fn verify_detects_edited_artifact_as_stale() {
         let dir = tempfile::tempdir().expect("tmp");
-        let manifest_path = write_packet(dir.path(), "original resume", true);
-        // Edit the resume after the manifest was written.
+        let (manifest_path, _) = write_signed_packet(dir.path(), "original resume", true);
+        // Edit the resume after the manifest was written (and signed).
         std::fs::write(dir.path().join("Resume_1pg_Tailored.md"), "EDITED").expect("tamper");
-        let v = verify_manifest(&manifest_path).expect("verify");
+        let v = verify_manifest(&manifest_path, None).expect("verify");
         assert_eq!(v.truth_status, STATUS_STALE);
         assert_eq!(
             v.stale_artifacts,
             vec!["Resume_1pg_Tailored.md".to_string()]
+        );
+    }
+
+    #[test]
+    fn verify_tampered_manifest_is_unverified() {
+        let dir = tempfile::tempdir().expect("tmp");
+        let (manifest_path, _) = write_signed_packet(dir.path(), "resume", true);
+        // Tamper a signed identity field on disk WITHOUT touching the artifact,
+        // so this isolates signature failure (not staleness).
+        let mut value: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&manifest_path).unwrap()).unwrap();
+        value["packet_id"] = serde_json::json!("sha256:tampered");
+        std::fs::write(&manifest_path, value.to_string()).unwrap();
+
+        let v = verify_manifest(&manifest_path, None).expect("verify");
+        assert_eq!(
+            v.truth_status, STATUS_UNVERIFIED,
+            "broken signature => not verified"
+        );
+        assert!(!v.signed);
+        assert!(
+            v.stale_artifacts.is_empty(),
+            "artifact bytes were untouched"
         );
     }
 
@@ -320,10 +513,23 @@ mod tests {
             "truth": { "passed": true },
             "artifacts": []
         });
-        let manifest_path = dir.path().join("packet.manifest.json");
-        std::fs::write(&manifest_path, manifest.to_string()).expect("write");
-        let err = verify_manifest(&manifest_path).unwrap_err();
+        let manifest_path = write_manifest(dir.path(), &manifest);
+        let err = verify_manifest(&manifest_path, None).unwrap_err();
         assert!(err.contains("Unsupported packet schema"), "got: {err}");
+    }
+
+    #[test]
+    fn verify_enforces_pinned_provenance_key() {
+        let dir = tempfile::tempdir().expect("tmp");
+        let (manifest_path, key_id) = write_signed_packet(dir.path(), "resume", true);
+
+        // Correct pin verifies.
+        let ok = verify_manifest(&manifest_path, Some(&key_id)).expect("verify");
+        assert_eq!(ok.truth_status, STATUS_VERIFIED);
+
+        // Wrong pin is refused outright.
+        let err = verify_manifest(&manifest_path, Some("sha256:not-the-trusted-key")).unwrap_err();
+        assert!(err.contains("trusted key"), "got: {err}");
     }
 
     #[test]
@@ -336,8 +542,8 @@ mod tests {
             .expect("runtime");
         rt.block_on(async {
             let dir = tempfile::tempdir().expect("tmp");
-            let manifest_path = write_packet(dir.path(), "resume body", true);
-            let verified = verify_manifest(&manifest_path).expect("verify");
+            let (manifest_path, _) = write_signed_packet(dir.path(), "resume body", true);
+            let verified = verify_manifest(&manifest_path, None).expect("verify");
 
             let pool = test_pool().await;
             let id = insert_job_from_packet(
