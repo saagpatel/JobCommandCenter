@@ -50,9 +50,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     registry = AdapterRegistry()
 
     from src.adapters.ashby import AshbyAdapter
+
     registry.register("ashby", AshbyAdapter())
 
     from src.adapters.greenhouse import GreenhouseAdapter
+
     registry.register("greenhouse", GreenhouseAdapter())
 
     from src.services.playwright_base import PlaywrightManager
@@ -63,21 +65,29 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.claude = ClaudeAIService()
 
     from src.services.gmail import GmailService
+
     app.state.gmail = GmailService()
 
     from src.adapters.linkedin import LinkedInAdapter
-    registry.register("linkedin", LinkedInAdapter(pw_manager=pw_mgr, claude_service=app.state.claude))
+
+    registry.register(
+        "linkedin", LinkedInAdapter(pw_manager=pw_mgr, claude_service=app.state.claude)
+    )
 
     from src.adapters.indeed import IndeedAdapter
+
     registry.register("indeed", IndeedAdapter(pw_manager=pw_mgr, claude_service=app.state.claude))
 
     from src.adapters.gem import GemAdapter
+
     registry.register("gem", GemAdapter(pw_manager=pw_mgr, claude_service=app.state.claude))
 
     from src.adapters.workday import WorkdayAdapter
+
     registry.register("workday", WorkdayAdapter(pw_manager=pw_mgr, claude_service=app.state.claude))
 
     from src.adapters.generic import GenericAdapter
+
     registry.register("generic", GenericAdapter(pw_manager=pw_mgr, claude_service=app.state.claude))
 
     app.state.registry = registry
@@ -98,6 +108,9 @@ def _build_app(shutdown_event: asyncio.Event) -> FastAPI:
     )
 
     app.state.shutdown_event = shutdown_event
+    # Submit token injected by the desktop app at spawn; required for live
+    # (non-dry-run) submissions. Absent => live submits are refused (fail-closed).
+    app.state.submit_token = os.environ.get("JCC_SUBMIT_TOKEN")
     app.include_router(router)
     return app
 

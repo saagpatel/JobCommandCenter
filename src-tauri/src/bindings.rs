@@ -47,6 +47,7 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         sidecar::stop_sidecar,
         sidecar::check_sidecar_health,
         sidecar::get_sidecar_status,
+        sidecar::get_submit_token,
         credentials::store_credential,
         credentials::get_credential,
         credentials::delete_credential,

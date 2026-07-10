@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import hmac
 import time
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from starlette.responses import StreamingResponse
 
 from .models import (
@@ -26,8 +27,37 @@ from .models import (
 router = APIRouter()
 
 
+def check_submit_authorized(
+    expected_token: str | None, dry_run: bool, provided_token: str | None
+) -> None:
+    """Defense-in-depth for the never-auto-submit rule.
+
+    A dry-run preview is always allowed. A LIVE submission requires a submit
+    token that only the trusted desktop app holds (injected into the sidecar at
+    spawn and fetched by the webview over Tauri IPC). Any other local process
+    hitting this endpoint with ``dry_run=false`` is refused. Fail-closed: if no
+    token is configured, live submission is rejected.
+    """
+    if dry_run:
+        return
+    if (
+        not expected_token
+        or not provided_token
+        or not hmac.compare_digest(provided_token, expected_token)
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Live submission requires a valid submit token",
+        )
+
+
 @router.post("/submit/batch")
 async def submit_batch(request: Request, body: BatchSubmissionRequest) -> StreamingResponse:
+    check_submit_authorized(
+        getattr(request.app.state, "submit_token", None),
+        body.dry_run,
+        request.headers.get("X-Submit-Token"),
+    )
     registry = request.app.state.registry
 
     async def event_stream():  # type: ignore[return]
@@ -55,6 +85,11 @@ async def submit_batch(request: Request, body: BatchSubmissionRequest) -> Stream
 
 @router.post("/submit", response_model=SubmissionResult)
 async def submit(request: Request, body: SubmissionRequest) -> SubmissionResult:
+    check_submit_authorized(
+        getattr(request.app.state, "submit_token", None),
+        body.dry_run,
+        request.headers.get("X-Submit-Token"),
+    )
     registry = request.app.state.registry
     adapter = registry.get(body.job.ats)
     if adapter is None:
@@ -108,7 +143,9 @@ _SUPPORTED_PLATFORMS = frozenset(_LOGIN_URLS.keys())
 @router.post("/playwright/sessions/{platform}/login", response_model=PlatformLoginResponse)
 async def platform_login(request: Request, platform: str) -> PlatformLoginResponse:
     if platform not in _SUPPORTED_PLATFORMS:
-        return PlatformLoginResponse(platform=platform, status="error", message=f"Unknown platform: {platform}")
+        return PlatformLoginResponse(
+            platform=platform, status="error", message=f"Unknown platform: {platform}"
+        )
 
     pw_mgr = request.app.state.playwright
     ctx = await pw_mgr.get_context(platform)
@@ -121,7 +158,9 @@ async def platform_login(request: Request, platform: str) -> PlatformLoginRespon
         return PlatformLoginResponse(platform=platform, status="logged_in")
     except Exception:
         await page.close()
-        return PlatformLoginResponse(platform=platform, status="error", message="Login timed out after 2 minutes")
+        return PlatformLoginResponse(
+            platform=platform, status="error", message="Login timed out after 2 minutes"
+        )
 
 
 @router.get("/playwright/sessions", response_model=list[PlatformSessionStatus])
@@ -137,7 +176,9 @@ async def list_sessions(request: Request) -> list[PlatformSessionStatus]:
 async def ai_map_fields(request: Request, body: FieldMappingRequest) -> FieldMappingResponse:
     claude = request.app.state.claude
     mapped = await claude.map_fields(body.questions, body.profile, body.job)
-    unmapped = [str(q.get("label", "")) for q in body.questions if str(q.get("label", "")) not in mapped]
+    unmapped = [
+        str(q.get("label", "")) for q in body.questions if str(q.get("label", "")) not in mapped
+    ]
     return FieldMappingResponse(mapped_answers=mapped, unmapped=unmapped)
 
 

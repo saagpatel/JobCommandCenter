@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::OnceLock;
 use std::time::Instant;
 
 use serde::Deserialize;
@@ -20,6 +21,30 @@ const MAX_CONSECUTIVE_FAILURES: u32 = 3;
 struct HealthResponse {
     #[allow(dead_code)]
     status: String,
+}
+
+static SUBMIT_TOKEN: OnceLock<String> = OnceLock::new();
+
+/// Per-session secret required for LIVE (non-dry-run) submissions. Generated once,
+/// injected into the sidecar at spawn as `JCC_SUBMIT_TOKEN`, and exposed to the
+/// app's own webview via [`get_submit_token`]. A separate local process cannot
+/// obtain it, so it cannot drive a real submission even though the sidecar port is
+/// bound to localhost. This makes "never auto-submit" defense-in-depth, not UI-only.
+fn submit_token() -> &'static str {
+    SUBMIT_TOKEN.get_or_init(|| {
+        use ring::rand::{SecureRandom, SystemRandom};
+        let mut buf = [0u8; 32];
+        SystemRandom::new().fill(&mut buf).expect("system rng");
+        buf.iter().map(|byte| format!("{byte:02x}")).collect()
+    })
+}
+
+/// Return the per-session submit token for the app's own webview. Reachable only
+/// over Tauri IPC (the desktop app), never from another local process.
+#[tauri::command]
+#[specta::specta]
+pub fn get_submit_token() -> String {
+    submit_token().to_string()
 }
 
 pub struct SidecarManager {
@@ -140,6 +165,7 @@ async fn spawn_python_process() -> Result<tokio::process::Child, String> {
 
     tokio::process::Command::new(&python_cmd)
         .arg(&sidecar_script)
+        .env("JCC_SUBMIT_TOKEN", submit_token())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .kill_on_drop(true)

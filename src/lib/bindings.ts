@@ -172,6 +172,17 @@ async deleteJob(id: string) : Promise<Result<boolean, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Verify a VAP manifest and import it as a tracked job. Never submits.
+ */
+async importPacket(input: ImportPacketInput) : Promise<Result<ImportPacketResult, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("import_packet", { input }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async listFollowups(status: string | null) : Promise<Result<Followup[], string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("list_followups", { status }) };
@@ -356,6 +367,13 @@ async getSidecarStatus() : Promise<Result<SidecarStatus, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Return the per-session submit token for the app's own webview. Reachable only
+ * over Tauri IPC (the desktop app), never from another local process.
+ */
+async getSubmitToken() : Promise<string> {
+    return await TAURI_INVOKE("get_submit_token");
+},
 async storeCredential(key: string, value: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("store_credential", { key, value }) };
@@ -428,7 +446,46 @@ export type CreateFollowupInput = { job_id: string; scheduled_date: string; reci
 export type CreateJobInput = { company: string; role: string; ats: string; apply_url: string; status: string | null; tier: string | null; job_posting_id: string | null; board_token: string | null; source: string | null; resume_path: string | null; cover_letter_path: string | null; custom_fields: string | null; notes: string | null; salary_range: string | null; location: string | null; jd_url: string | null }
 export type CreateNoteInput = { job_id: string; note_type: string; title: string; content: string }
 export type Followup = { id: string; job_id: string; draft_subject: string | null; draft_body: string | null; status: string; scheduled_date: string; sent_at: string | null; gmail_message_id: string | null; recipient_email: string | null; created_at: string }
-export type Job = { id: string; company: string; role: string; ats: string; apply_url: string; job_posting_id: string | null; board_token: string | null; status: string; tier: string; source: string | null; resume_path: string | null; cover_letter_path: string | null; custom_fields: string | null; notes: string | null; applied_at: string | null; follow_up_date: string | null; response_date: string | null; salary_range: string | null; location: string | null; jd_url: string | null; created_at: string; updated_at: string }
+export type ImportPacketInput = { 
+/**
+ * Absolute path to the packet's `packet.manifest.json`.
+ */
+manifest_path: string; 
+/**
+ * The posting URL the human is applying to (the packet does not carry it).
+ */
+apply_url: string; 
+/**
+ * ATS identifier for the posting (e.g. `ashby`, `greenhouse`, `linkedin`).
+ */
+ats: string; 
+/**
+ * Optional trusted signing-key fingerprint. When set, packets not signed by
+ * exactly this key are refused (provenance pinning).
+ */
+expected_public_key_id: string | null }
+export type ImportPacketResult = { job: Job; packet_id: string; truth_status: string; stale_artifacts: string[]; 
+/**
+ * True when a valid Ed25519 signature was present and verified.
+ */
+signed: boolean; 
+/**
+ * Signing key fingerprint, if the manifest carried a signature.
+ */
+public_key_id: string | null }
+export type Job = { id: string; company: string; role: string; ats: string; apply_url: string; job_posting_id: string | null; board_token: string | null; status: string; tier: string; source: string | null; resume_path: string | null; cover_letter_path: string | null; custom_fields: string | null; notes: string | null; applied_at: string | null; follow_up_date: string | null; response_date: string | null; salary_range: string | null; location: string | null; jd_url: string | null; 
+/**
+ * VAP provenance: the source packet's application-identity id (if imported).
+ */
+source_packet_id: string | null; 
+/**
+ * VAP provenance: the source packet's manifest schema version (e.g. `vap/1`).
+ */
+source_packet_version: string | null; 
+/**
+ * VAP truth status at import: `verified` | `stale` | `unverified` (None if not imported).
+ */
+truth_status: string | null; created_at: string; updated_at: string }
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
 export type Note = { id: string; job_id: string; note_type: string; title: string; content: string; created_at: string; updated_at: string }
 export type PipelineFunnel = { saved: number; applied: number; interviewing: number; offer: number; rejected: number }
