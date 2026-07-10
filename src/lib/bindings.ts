@@ -441,7 +441,7 @@ quick_pane_shortcut: string | null;
  * User's preferred language (e.g., "en", "es", "de")
  * If None, uses system locale detection
  */
-language: string | null;
+language: string | null; 
 /**
  * SHA-256 fingerprint of the ApplyKit signing key trusted for packet imports.
  * If None, imports still verify integrity but do not assert provenance.
