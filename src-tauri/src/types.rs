@@ -106,6 +106,12 @@ pub struct Job {
     pub salary_range: Option<String>,
     pub location: Option<String>,
     pub jd_url: Option<String>,
+    /// VAP provenance: the source packet's application-identity id (if imported).
+    pub source_packet_id: Option<String>,
+    /// VAP provenance: the source packet's manifest schema version (e.g. `vap/1`).
+    pub source_packet_version: Option<String>,
+    /// VAP truth status at import: `verified` | `stale` | `unverified` (None if not imported).
+    pub truth_status: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }

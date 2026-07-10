@@ -1,12 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { Mock } from 'vitest'
-import { render, screen } from '@/test/test-utils'
 import userEvent from '@testing-library/user-event'
-import { SubmitConsole } from './SubmitConsole'
+import type { Mock } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Job, SidecarStatus } from '@/lib/tauri-bindings'
 import { useJobs, useUpdateJob } from '@/services/jobs'
 import { useProfile } from '@/services/profile'
 import { useSidecarStatus } from '@/services/sidecar'
-import type { Job, SidecarStatus } from '@/lib/tauri-bindings'
+import { render, screen } from '@/test/test-utils'
+import { SubmitConsole } from './SubmitConsole'
 
 vi.mock('@/services/jobs', () => ({
   useJobs: vi.fn(),
@@ -63,6 +63,9 @@ function makeJob(overrides: Partial<Job> = {}): Job {
     salary_range: null,
     location: null,
     jd_url: null,
+    source_packet_id: null,
+    source_packet_version: null,
+    truth_status: null,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
     ...overrides,

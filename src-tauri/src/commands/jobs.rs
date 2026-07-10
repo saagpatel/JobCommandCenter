@@ -12,7 +12,7 @@ pub async fn list_jobs(app: AppHandle, status: Option<String>) -> Result<Vec<Job
     let jobs = match status {
         Some(ref s) => {
             sqlx::query_as::<_, Job>(
-                "SELECT id, company, role, ats, apply_url, job_posting_id, board_token, status, tier, source, resume_path, cover_letter_path, custom_fields, notes, applied_at, follow_up_date, response_date, salary_range, location, jd_url, created_at, updated_at FROM jobs WHERE status = ? ORDER BY updated_at DESC",
+                "SELECT id, company, role, ats, apply_url, job_posting_id, board_token, status, tier, source, resume_path, cover_letter_path, custom_fields, notes, applied_at, follow_up_date, response_date, salary_range, location, jd_url, source_packet_id, source_packet_version, truth_status, created_at, updated_at FROM jobs WHERE status = ? ORDER BY updated_at DESC",
             )
             .bind(s)
             .fetch_all(pool.inner())
@@ -20,7 +20,7 @@ pub async fn list_jobs(app: AppHandle, status: Option<String>) -> Result<Vec<Job
         }
         None => {
             sqlx::query_as::<_, Job>(
-                "SELECT id, company, role, ats, apply_url, job_posting_id, board_token, status, tier, source, resume_path, cover_letter_path, custom_fields, notes, applied_at, follow_up_date, response_date, salary_range, location, jd_url, created_at, updated_at FROM jobs ORDER BY updated_at DESC",
+                "SELECT id, company, role, ats, apply_url, job_posting_id, board_token, status, tier, source, resume_path, cover_letter_path, custom_fields, notes, applied_at, follow_up_date, response_date, salary_range, location, jd_url, source_packet_id, source_packet_version, truth_status, created_at, updated_at FROM jobs ORDER BY updated_at DESC",
             )
             .fetch_all(pool.inner())
             .await
@@ -39,7 +39,7 @@ pub async fn get_job(app: AppHandle, id: String) -> Result<Option<Job>, String> 
     let pool = app.state::<SqlitePool>();
 
     sqlx::query_as::<_, Job>(
-        "SELECT id, company, role, ats, apply_url, job_posting_id, board_token, status, tier, source, resume_path, cover_letter_path, custom_fields, notes, applied_at, follow_up_date, response_date, salary_range, location, jd_url, created_at, updated_at FROM jobs WHERE id = ?",
+        "SELECT id, company, role, ats, apply_url, job_posting_id, board_token, status, tier, source, resume_path, cover_letter_path, custom_fields, notes, applied_at, follow_up_date, response_date, salary_range, location, jd_url, source_packet_id, source_packet_version, truth_status, created_at, updated_at FROM jobs WHERE id = ?",
     )
     .bind(&id)
     .fetch_optional(pool.inner())

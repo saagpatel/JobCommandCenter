@@ -10,6 +10,7 @@ pub mod followups;
 pub mod jobs;
 pub mod notes;
 pub mod notifications;
+pub mod packet_import;
 pub mod preferences;
 pub mod profile;
 pub mod quick_pane;

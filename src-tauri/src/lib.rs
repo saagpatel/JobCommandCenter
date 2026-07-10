@@ -125,6 +125,11 @@ const MIGRATIONS: &[&str] = &[
     "CREATE INDEX IF NOT EXISTS idx_followups_status_date ON followups(status, scheduled_date);",
     // Migration 7: Add follow_up_days to profile
     "ALTER TABLE profile ADD COLUMN follow_up_days INTEGER NOT NULL DEFAULT 7;",
+    // Migration 8: VAP packet provenance on jobs (source packet id/version + truth status).
+    // ALTER ADD COLUMN re-runs every launch; the duplicate-column error is tolerated below.
+    "ALTER TABLE jobs ADD COLUMN source_packet_id TEXT;",
+    "ALTER TABLE jobs ADD COLUMN source_packet_version TEXT;",
+    "ALTER TABLE jobs ADD COLUMN truth_status TEXT;",
 ];
 
 /// Application entry point. Sets up all plugins and initializes the app.

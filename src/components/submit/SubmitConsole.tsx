@@ -1,16 +1,11 @@
-import { useState } from 'react'
 import {
-  Send,
-  CheckCircle2,
-  XCircle,
   AlertTriangle,
+  CheckCircle2,
   Loader2,
+  Send,
+  XCircle,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import { useState } from 'react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,13 +17,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { logger } from '@/lib/logger'
+import { SIDECAR_URL } from '@/lib/sidecar'
 import type { Job, SidecarState } from '@/lib/tauri-bindings'
+import { commands } from '@/lib/tauri-bindings'
+import { cn } from '@/lib/utils'
 import { useJobs, useUpdateJob } from '@/services/jobs'
 import { useProfile } from '@/services/profile'
 import { useSidecarStatus } from '@/services/sidecar'
-import { SIDECAR_URL } from '@/lib/sidecar'
-import { logger } from '@/lib/logger'
 
 interface SubmissionResult {
   job_id: string
@@ -199,9 +200,19 @@ export function SubmitConsole() {
     }
 
     try {
+      // Live (non-dry-run) submits require the per-session submit token, held
+      // only by this app and fetched over Tauri IPC so a rogue local process
+      // cannot obtain it. Dry-run previews never carry it.
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      }
+      if (!dryRun) {
+        headers['X-Submit-Token'] = await commands.getSubmitToken()
+      }
+
       const response = await fetch(`${SIDECAR_URL}/submit/batch`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(body),
       })
 

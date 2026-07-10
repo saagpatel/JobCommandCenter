@@ -1,8 +1,8 @@
-import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { describe, it, expect, vi } from 'vitest'
-import { InterviewPrep } from './InterviewPrep'
+import { render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import { commands } from '@/lib/tauri-bindings'
+import { InterviewPrep } from './InterviewPrep'
 
 function renderWithProviders(ui: React.ReactElement) {
   const queryClient = new QueryClient({
@@ -52,6 +52,9 @@ describe('InterviewPrep', () => {
           salary_range: null,
           location: null,
           jd_url: null,
+          source_packet_id: null,
+          source_packet_version: null,
+          truth_status: null,
           created_at: '2026-03-01',
           updated_at: '2026-03-01',
         },
@@ -89,6 +92,9 @@ describe('InterviewPrep', () => {
           salary_range: null,
           location: null,
           jd_url: null,
+          source_packet_id: null,
+          source_packet_version: null,
+          truth_status: null,
           created_at: '2026-03-01',
           updated_at: '2026-03-01',
         },

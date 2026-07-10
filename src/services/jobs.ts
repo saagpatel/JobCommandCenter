@@ -1,8 +1,14 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import type {
+  CreateJobInput,
+  ImportPacketInput,
+  ImportPacketResult,
+  Job,
+  UpdateJobInput,
+} from '@/lib/bindings'
 import { logger } from '@/lib/logger'
 import { commands, unwrapResult } from '@/lib/tauri-bindings'
-import type { Job, CreateJobInput, UpdateJobInput } from '@/lib/bindings'
 
 export const jobsQueryKeys = {
   all: ['jobs'] as const,
@@ -49,6 +55,40 @@ export function useCreateJob() {
     onError: (error: unknown) => {
       logger.error('Failed to create job', { error })
       toast.error('Failed to add job', {
+        description: error instanceof Error ? error.message : String(error),
+      })
+    },
+  })
+}
+
+export function useImportPacket() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (
+      input: ImportPacketInput
+    ): Promise<ImportPacketResult> => {
+      const result = await commands.importPacket(input)
+      return unwrapResult(result)
+    },
+    onSuccess: result => {
+      queryClient.invalidateQueries({ queryKey: jobsQueryKeys.all })
+      if (result.truth_status === 'verified') {
+        toast.success('Verified packet imported', {
+          description: `${result.job.company} — ${result.job.role}`,
+        })
+      } else {
+        toast.warning(`Packet imported as ${result.truth_status}`, {
+          description:
+            result.stale_artifacts.length > 0
+              ? `Edited after generation: ${result.stale_artifacts.join(', ')}`
+              : 'Signature missing or invalid — re-run ApplyKit to restore.',
+        })
+      }
+    },
+    onError: (error: unknown) => {
+      logger.error('Failed to import packet', { error })
+      toast.error('Failed to import packet', {
         description: error instanceof Error ? error.message : String(error),
       })
     },

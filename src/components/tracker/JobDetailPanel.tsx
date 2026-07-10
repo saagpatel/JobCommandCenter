@@ -1,23 +1,15 @@
+import { open } from '@tauri-apps/plugin-dialog'
+import { openUrl } from '@tauri-apps/plugin-opener'
+import {
+  CalendarClock,
+  ExternalLink,
+  Eye,
+  FolderOpen,
+  Plus,
+  Trash2,
+} from 'lucide-react'
 import { useRef } from 'react'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { toast } from 'sonner'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,23 +21,32 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
-  ExternalLink,
-  Trash2,
-  FolderOpen,
-  Eye,
-  CalendarClock,
-  Plus,
-} from 'lucide-react'
-import { open } from '@tauri-apps/plugin-dialog'
-import { toast } from 'sonner'
-import { useUIStore } from '@/store/ui-store'
-import { useJob, useUpdateJob, useDeleteJob } from '@/services/jobs'
-import { useFollowupsForJob, useCreateFollowup } from '@/services/followups'
-import { openUrl } from '@tauri-apps/plugin-opener'
-import { commands } from '@/lib/tauri-bindings'
-import { logger } from '@/lib/logger'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import { Textarea } from '@/components/ui/textarea'
 import type { UpdateJobInput } from '@/lib/bindings'
+import { logger } from '@/lib/logger'
+import { commands } from '@/lib/tauri-bindings'
+import { cn } from '@/lib/utils'
+import { useCreateFollowup, useFollowupsForJob } from '@/services/followups'
+import { useDeleteJob, useJob, useUpdateJob } from '@/services/jobs'
+import { useUIStore } from '@/store/ui-store'
 
 const STATUS_OPTIONS = [
   'saved',
@@ -65,6 +66,30 @@ const ATS_OPTIONS = [
   'lever',
   'other',
 ] as const
+
+// VAP truth status from packet import: provenance of the application materials,
+// never permission to submit (the Submit Console confirmation still gates that).
+function truthBadgeClass(status: string): string {
+  switch (status) {
+    case 'verified':
+      return 'border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
+    case 'stale':
+      return 'border-yellow-200 bg-yellow-100 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+    default:
+      return 'border-red-200 bg-red-100 text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-400'
+  }
+}
+
+function truthBadgeTitle(status: string): string {
+  switch (status) {
+    case 'verified':
+      return 'Packet signature valid, artifacts intact, truth gate passed'
+    case 'stale':
+      return 'Packet files were edited after generation — re-run ApplyKit to restore'
+    default:
+      return 'Packet signature missing or invalid'
+  }
+}
 
 function emptyUpdate(): UpdateJobInput {
   return {
@@ -156,6 +181,18 @@ export function JobDetailPanel() {
                 >
                   {job.tier === 'tier1' ? 'T1' : 'T2'}
                 </Badge>
+                {job.truth_status ? (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'shrink-0 text-xs uppercase',
+                      truthBadgeClass(job.truth_status)
+                    )}
+                    title={truthBadgeTitle(job.truth_status)}
+                  >
+                    {job.truth_status}
+                  </Badge>
+                ) : null}
               </SheetTitle>
               <p className="text-sm text-muted-foreground">{job.role}</p>
             </SheetHeader>
