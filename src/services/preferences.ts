@@ -22,7 +22,12 @@ export function usePreferences() {
         logger.warn('Failed to load preferences, using defaults', {
           error: result.error,
         })
-        return { theme: 'system', quick_pane_shortcut: null, language: null }
+        return {
+          theme: 'system',
+          quick_pane_shortcut: null,
+          language: null,
+          applykit_public_key_id: null,
+        }
       }
 
       logger.info('Preferences loaded successfully', {

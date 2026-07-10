@@ -34,6 +34,9 @@ pub struct AppPreferences {
     /// User's preferred language (e.g., "en", "es", "de")
     /// If None, uses system locale detection
     pub language: Option<String>,
+    /// SHA-256 fingerprint of the ApplyKit signing key trusted for packet imports.
+    /// If None, imports still verify integrity but do not assert provenance.
+    pub applykit_public_key_id: Option<String>,
 }
 
 impl Default for AppPreferences {
@@ -42,6 +45,7 @@ impl Default for AppPreferences {
             theme: "system".to_string(),
             quick_pane_shortcut: None, // None means use default
             language: None,            // None means use system locale
+            applykit_public_key_id: None,
         }
     }
 }

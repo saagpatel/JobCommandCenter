@@ -441,7 +441,12 @@ quick_pane_shortcut: string | null;
  * User's preferred language (e.g., "en", "es", "de")
  * If None, uses system locale detection
  */
-language: string | null }
+language: string | null;
+/**
+ * SHA-256 fingerprint of the ApplyKit signing key trusted for packet imports.
+ * If None, imports still verify integrity but do not assert provenance.
+ */
+applykit_public_key_id: string | null }
 export type CreateFollowupInput = { job_id: string; scheduled_date: string; recipient_email: string | null }
 export type CreateJobInput = { company: string; role: string; ats: string; apply_url: string; status: string | null; tier: string | null; job_posting_id: string | null; board_token: string | null; source: string | null; resume_path: string | null; cover_letter_path: string | null; custom_fields: string | null; notes: string | null; salary_range: string | null; location: string | null; jd_url: string | null }
 export type CreateNoteInput = { job_id: string; note_type: string; title: string; content: string }

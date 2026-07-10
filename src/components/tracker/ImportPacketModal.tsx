@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useImportPacket } from '@/services/jobs'
+import { usePreferences } from '@/services/preferences'
 
 const ATS_OPTIONS = [
   'ashby',
@@ -40,6 +41,7 @@ export function ImportPacketModal({
   onOpenChange,
 }: ImportPacketModalProps) {
   const importPacket = useImportPacket()
+  const { data: preferences } = usePreferences()
 
   const [manifestPath, setManifestPath] = useState('')
   const [applyUrl, setApplyUrl] = useState('')
@@ -73,7 +75,8 @@ export function ImportPacketModal({
         manifest_path: manifestPath,
         apply_url: applyUrl.trim(),
         ats,
-        expected_public_key_id: null,
+        expected_public_key_id:
+          preferences?.applykit_public_key_id?.trim() || null,
       },
       {
         onSuccess: () => {

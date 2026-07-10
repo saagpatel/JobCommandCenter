@@ -47,6 +47,10 @@
   "preferences.advanced.option1": "Option 1 d'exemple",
   "preferences.advanced.option2": "Option 2 d'exemple",
   "preferences.advanced.option3": "Option 3 d'exemple",
+  "preferences.advanced.applykit.title": "Vérification des paquets ApplyKit",
+  "preferences.advanced.applykit.publicKeyId": "Empreinte de clé de signature approuvée",
+  "preferences.advanced.applykit.publicKeyIdDescription": "Importez uniquement les paquets ApplyKit signés par cette clé. Laissez vide pour vérifier l'intégrité sans épingler la provenance.",
+  "preferences.advanced.applykit.publicKeyIdPlaceholder": "Empreinte SHA-256 de la clé publique",
 
   "common.enabled": "Activé",
   "common.disabled": "Désactivé",

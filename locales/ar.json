@@ -47,6 +47,10 @@
   "preferences.advanced.option1": "الخيار 1",
   "preferences.advanced.option2": "الخيار 2",
   "preferences.advanced.option3": "الخيار 3",
+  "preferences.advanced.applykit.title": "التحقق من حزم ApplyKit",
+  "preferences.advanced.applykit.publicKeyId": "بصمة مفتاح التوقيع الموثوق",
+  "preferences.advanced.applykit.publicKeyIdDescription": "استورد فقط حزم ApplyKit الموقعة بهذا المفتاح. اتركه فارغاً للتحقق من التكامل دون تثبيت المصدر.",
+  "preferences.advanced.applykit.publicKeyIdPlaceholder": "بصمة SHA-256 للمفتاح العام",
 
   "common.enabled": "مفعّل",
   "common.disabled": "معطّل",

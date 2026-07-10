@@ -47,6 +47,10 @@
   "preferences.advanced.option1": "Example Option 1",
   "preferences.advanced.option2": "Example Option 2",
   "preferences.advanced.option3": "Example Option 3",
+  "preferences.advanced.applykit.title": "ApplyKit packet verification",
+  "preferences.advanced.applykit.publicKeyId": "Trusted signing key fingerprint",
+  "preferences.advanced.applykit.publicKeyIdDescription": "Only import ApplyKit packets signed by this key. Leave blank to verify integrity without pinning provenance.",
+  "preferences.advanced.applykit.publicKeyIdPlaceholder": "SHA-256 public key fingerprint",
 
   "common.enabled": "Enabled",
   "common.disabled": "Disabled",

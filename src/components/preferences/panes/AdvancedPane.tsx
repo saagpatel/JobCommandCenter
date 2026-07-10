@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -9,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { usePreferences, useSavePreferences } from '@/services/preferences'
 import { SettingsField, SettingsSection } from '../shared/SettingsComponents'
 
 export function AdvancedPane() {
@@ -19,9 +21,43 @@ export function AdvancedPane() {
   // 2. Use usePreferencesManager() and updatePreferences()
   const [exampleAdvancedToggle, setExampleAdvancedToggle] = useState(false)
   const [exampleDropdown, setExampleDropdown] = useState('option1')
+  const { data: preferences } = usePreferences()
+  const savePreferences = useSavePreferences()
+
+  function saveApplyKitPublicKeyId(event: React.FocusEvent<HTMLInputElement>) {
+    if (!preferences) return
+
+    const value = event.currentTarget.value.trim()
+    if (value === (preferences.applykit_public_key_id ?? '')) return
+
+    savePreferences.mutate({
+      ...preferences,
+      applykit_public_key_id: value || null,
+    })
+  }
 
   return (
     <div className="space-y-6">
+      <SettingsSection title={t('preferences.advanced.applykit.title')}>
+        <SettingsField
+          label={t('preferences.advanced.applykit.publicKeyId')}
+          description={t(
+            'preferences.advanced.applykit.publicKeyIdDescription'
+          )}
+        >
+          <Input
+            id="applykit-public-key-id"
+            key={preferences?.applykit_public_key_id ?? 'unconfigured'}
+            defaultValue={preferences?.applykit_public_key_id ?? ''}
+            onBlur={saveApplyKitPublicKeyId}
+            placeholder={t(
+              'preferences.advanced.applykit.publicKeyIdPlaceholder'
+            )}
+            disabled={!preferences || savePreferences.isPending}
+          />
+        </SettingsField>
+      </SettingsSection>
+
       <SettingsSection title={t('preferences.advanced.title')}>
         <SettingsField
           label={t('preferences.advanced.toggle')}
