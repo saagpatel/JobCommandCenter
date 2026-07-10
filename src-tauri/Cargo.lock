@@ -2325,6 +2325,7 @@ dependencies = [
  "reqwest 0.12.28",
  "serde",
  "serde_json",
+ "sha2",
  "shellexpand",
  "specta",
  "specta-typescript",
@@ -2346,6 +2347,7 @@ dependencies = [
  "tauri-plugin-updater",
  "tauri-plugin-window-state",
  "tauri-specta",
+ "tempfile",
  "tokio",
  "uuid",
 ]
