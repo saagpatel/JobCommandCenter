@@ -1,22 +1,23 @@
-import { useState } from 'react'
 import {
   DndContext,
-  PointerSensor,
-  useSensor,
-  useSensors,
   type DragEndEvent,
   DragOverlay,
   type DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
 } from '@dnd-kit/core'
-import { Plus } from 'lucide-react'
+import { Plus, ShieldCheck } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
-import { KanbanColumn } from './KanbanColumn'
-import { JobCard } from './JobCard'
-import { AddJobModal } from './AddJobModal'
-import { JobDetailPanel } from './JobDetailPanel'
-import { useJobs, useUpdateJob } from '@/services/jobs'
 import type { Job } from '@/lib/bindings'
+import { useJobs, useUpdateJob } from '@/services/jobs'
+import { AddJobModal } from './AddJobModal'
+import { ImportPacketModal } from './ImportPacketModal'
+import { JobCard } from './JobCard'
+import { JobDetailPanel } from './JobDetailPanel'
+import { KanbanColumn } from './KanbanColumn'
 
 const COLUMNS = [
   { id: 'saved', label: 'Saved' },
@@ -30,6 +31,7 @@ export function KanbanBoard() {
   const { data: jobs = [], isLoading } = useJobs()
   const updateJob = useUpdateJob()
   const [addModalOpen, setAddModalOpen] = useState(false)
+  const [importModalOpen, setImportModalOpen] = useState(false)
   const [activeJob, setActiveJob] = useState<Job | null>(null)
 
   const sensors = useSensors(
@@ -100,10 +102,20 @@ export function KanbanBoard() {
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b px-6 py-4">
         <h1 className="text-2xl font-bold tracking-tight">Tracker</h1>
-        <Button size="sm" onClick={() => setAddModalOpen(true)}>
-          <Plus className="mr-1.5 h-4 w-4" />
-          Add Job
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setImportModalOpen(true)}
+          >
+            <ShieldCheck className="mr-1.5 h-4 w-4" />
+            Import Packet
+          </Button>
+          <Button size="sm" onClick={() => setAddModalOpen(true)}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            Add Job
+          </Button>
+        </div>
       </div>
 
       <ScrollArea className="flex-1">
@@ -131,6 +143,10 @@ export function KanbanBoard() {
       </ScrollArea>
 
       <AddJobModal open={addModalOpen} onOpenChange={setAddModalOpen} />
+      <ImportPacketModal
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+      />
       <JobDetailPanel />
     </div>
   )
