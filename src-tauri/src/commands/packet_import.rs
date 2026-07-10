@@ -11,6 +11,7 @@
 //! must pass the human confirmation in the Submit Console before anything is sent.
 //! "Verified" describes the packet's provenance, never an authorization to submit.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use ring::signature::{UnparsedPublicKey, ED25519};
@@ -41,6 +42,8 @@ struct VapManifest {
     source: ManifestSource,
     truth: ManifestTruth,
     artifacts: Vec<ManifestArtifact>,
+    #[serde(default)]
+    custom_fields: BTreeMap<String, String>,
     #[serde(default)]
     signature: Option<ManifestSignature>,
 }
@@ -92,6 +95,8 @@ pub struct VerifiedPacket {
     pub public_key_id: Option<String>,
     pub resume_path: Option<String>,
     pub cover_letter_path: Option<String>,
+    /// Signed, operator-supplied ATS answers to persist with the imported job.
+    pub custom_fields: BTreeMap<String, String>,
 }
 
 /// Lowercase hex SHA-256, matching ApplyKit's artifact hashing.
@@ -131,6 +136,9 @@ fn signing_payload(manifest: &VapManifest) -> Vec<u8> {
         .collect();
     artifact_lines.sort();
     lines.extend(artifact_lines);
+    for (key, value) in &manifest.custom_fields {
+        lines.push(format!("custom_field\0{key}\0{value}"));
+    }
     lines.push(format!("truth_passed={}", manifest.truth.passed));
     lines.join("\n").into_bytes()
 }
@@ -248,6 +256,7 @@ pub fn verify_manifest(
         public_key_id,
         resume_path,
         cover_letter_path,
+        custom_fields: manifest.custom_fields,
     })
 }
 
@@ -260,9 +269,11 @@ async fn insert_job_from_packet(
     ats: &str,
 ) -> Result<String, String> {
     let id = uuid::Uuid::now_v7().to_string();
+    let custom_fields = serde_json::to_string(&verified.custom_fields)
+        .map_err(|e| format!("Failed to serialize packet custom fields: {e}"))?;
     sqlx::query(
-        "INSERT INTO jobs (id, company, role, ats, apply_url, source, resume_path, cover_letter_path, source_packet_id, source_packet_version, truth_status) \
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO jobs (id, company, role, ats, apply_url, source, resume_path, cover_letter_path, custom_fields, source_packet_id, source_packet_version, truth_status) \
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(&id)
     .bind(&verified.company)
@@ -272,6 +283,7 @@ async fn insert_job_from_packet(
     .bind(&verified.source_platform)
     .bind(&verified.resume_path)
     .bind(&verified.cover_letter_path)
+    .bind(&custom_fields)
     .bind(&verified.packet_id)
     .bind(&verified.schema_version)
     .bind(&verified.truth_status)
@@ -565,6 +577,44 @@ mod tests {
             // Default status is the tracker's entry column, NOT anything submitted.
             assert_eq!(job.status, "saved");
             assert!(job.resume_path.is_some());
+            assert_eq!(job.custom_fields.as_deref(), Some("{}"));
+        });
+    }
+
+    #[test]
+    fn import_persists_signed_packet_custom_fields() {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("runtime");
+        rt.block_on(async {
+            let dir = tempfile::tempdir().expect("tmp");
+            let (manifest_path, _) = write_signed_packet(dir.path(), "resume body", true);
+            let mut value: serde_json::Value =
+                serde_json::from_str(&std::fs::read_to_string(&manifest_path).unwrap()).unwrap();
+            value["custom_fields"] = serde_json::json!({"desired_salary": "180000"});
+            let _ = sign_manifest_value(&mut value);
+            std::fs::write(
+                &manifest_path,
+                serde_json::to_string_pretty(&value).unwrap(),
+            )
+            .unwrap();
+
+            let verified = verify_manifest(&manifest_path, None).expect("verify");
+            let pool = test_pool().await;
+            let id = insert_job_from_packet(
+                &pool,
+                &verified,
+                "https://boards.example/apply",
+                "greenhouse",
+            )
+            .await
+            .expect("import");
+            let job = fetch_job(&pool, &id).await.expect("fetch");
+            assert_eq!(
+                job.custom_fields.as_deref(),
+                Some(r#"{"desired_salary":"180000"}"#)
+            );
         });
     }
 }
