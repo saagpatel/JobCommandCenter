@@ -36,7 +36,7 @@ log = "0.4"
 regex = "1"
 
 # Database
-sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio"] }
+sqlx = { version = "0.9", features = ["sqlite", "runtime-tokio"] }
 
 # Data types
 uuid = { version = "1", features = ["v7"] }
