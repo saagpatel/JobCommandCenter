@@ -1,4 +1,4 @@
-use sqlx::SqlitePool;
+use sqlx::{AssertSqlSafe, SqlitePool};
 use tauri::{AppHandle, Manager};
 
 use crate::types::{CreateJobInput, Job, UpdateJobInput};
@@ -139,8 +139,9 @@ pub async fn update_job(app: AppHandle, id: String, input: UpdateJobInput) -> Re
 
     set_clauses.push("updated_at = datetime('now')".to_string());
 
+    // Column fragments come only from the literal allowlist in maybe_set!; values stay bound.
     let sql = format!("UPDATE jobs SET {} WHERE id = ?", set_clauses.join(", "));
-    let mut query = sqlx::query(&sql);
+    let mut query = sqlx::query(AssertSqlSafe(sql));
 
     for val in &values {
         query = query.bind(val);

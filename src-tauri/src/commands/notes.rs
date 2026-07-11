@@ -1,4 +1,4 @@
-use sqlx::SqlitePool;
+use sqlx::{AssertSqlSafe, SqlitePool};
 use tauri::{AppHandle, Manager};
 
 use crate::types::{CreateNoteInput, Note, UpdateNoteInput};
@@ -10,9 +10,9 @@ const NOTE_COLUMNS: &str = "id, job_id, note_type, title, content, created_at, u
 #[specta::specta]
 pub async fn list_notes_for_job(app: AppHandle, job_id: String) -> Result<Vec<Note>, String> {
     let pool = app.state::<SqlitePool>();
-    sqlx::query_as::<_, Note>(&format!(
+    sqlx::query_as::<_, Note>(AssertSqlSafe(format!(
         "SELECT {NOTE_COLUMNS} FROM notes WHERE job_id = ? ORDER BY created_at DESC"
-    ))
+    )))
     .bind(&job_id)
     .fetch_all(pool.inner())
     .await
@@ -26,14 +26,16 @@ pub async fn list_notes_for_job(app: AppHandle, job_id: String) -> Result<Vec<No
 #[specta::specta]
 pub async fn get_note(app: AppHandle, id: String) -> Result<Option<Note>, String> {
     let pool = app.state::<SqlitePool>();
-    sqlx::query_as::<_, Note>(&format!("SELECT {NOTE_COLUMNS} FROM notes WHERE id = ?"))
-        .bind(&id)
-        .fetch_optional(pool.inner())
-        .await
-        .map_err(|e| {
-            log::error!("Failed to get note {id}: {e}");
-            format!("Failed to get note: {e}")
-        })
+    sqlx::query_as::<_, Note>(AssertSqlSafe(format!(
+        "SELECT {NOTE_COLUMNS} FROM notes WHERE id = ?"
+    )))
+    .bind(&id)
+    .fetch_optional(pool.inner())
+    .await
+    .map_err(|e| {
+        log::error!("Failed to get note {id}: {e}");
+        format!("Failed to get note: {e}")
+    })
 }
 
 #[tauri::command]
@@ -55,14 +57,16 @@ pub async fn create_note(app: AppHandle, input: CreateNoteInput) -> Result<Note,
             format!("Failed to create note: {e}")
         })?;
 
-    sqlx::query_as::<_, Note>(&format!("SELECT {NOTE_COLUMNS} FROM notes WHERE id = ?"))
-        .bind(&id)
-        .fetch_one(pool.inner())
-        .await
-        .map_err(|e| {
-            log::error!("Failed to retrieve created note: {e}");
-            format!("Note created but could not be retrieved: {e}")
-        })
+    sqlx::query_as::<_, Note>(AssertSqlSafe(format!(
+        "SELECT {NOTE_COLUMNS} FROM notes WHERE id = ?"
+    )))
+    .bind(&id)
+    .fetch_one(pool.inner())
+    .await
+    .map_err(|e| {
+        log::error!("Failed to retrieve created note: {e}");
+        format!("Note created but could not be retrieved: {e}")
+    })
 }
 
 #[tauri::command]
@@ -81,9 +85,9 @@ pub async fn update_note(
     maybe_set!(input, set_clauses, values, content, "content");
 
     if set_clauses.is_empty() {
-        return sqlx::query_as::<_, Note>(&format!(
+        return sqlx::query_as::<_, Note>(AssertSqlSafe(format!(
             "SELECT {NOTE_COLUMNS} FROM notes WHERE id = ?"
-        ))
+        )))
         .bind(&id)
         .fetch_optional(pool.inner())
         .await
@@ -93,8 +97,9 @@ pub async fn update_note(
 
     set_clauses.push("updated_at = datetime('now')".to_string());
 
+    // Column fragments come only from the literal allowlist in maybe_set!; values stay bound.
     let sql = format!("UPDATE notes SET {} WHERE id = ?", set_clauses.join(", "));
-    let mut query = sqlx::query(&sql);
+    let mut query = sqlx::query(AssertSqlSafe(sql));
     for val in &values {
         query = query.bind(val);
     }
@@ -109,11 +114,13 @@ pub async fn update_note(
         return Err("Note not found".to_string());
     }
 
-    sqlx::query_as::<_, Note>(&format!("SELECT {NOTE_COLUMNS} FROM notes WHERE id = ?"))
-        .bind(&id)
-        .fetch_one(pool.inner())
-        .await
-        .map_err(|e| format!("Note updated but could not be retrieved: {e}"))
+    sqlx::query_as::<_, Note>(AssertSqlSafe(format!(
+        "SELECT {NOTE_COLUMNS} FROM notes WHERE id = ?"
+    )))
+    .bind(&id)
+    .fetch_one(pool.inner())
+    .await
+    .map_err(|e| format!("Note updated but could not be retrieved: {e}"))
 }
 
 #[tauri::command]
