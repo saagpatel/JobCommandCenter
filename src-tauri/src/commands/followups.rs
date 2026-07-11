@@ -1,4 +1,4 @@
-use sqlx::SqlitePool;
+use sqlx::{AssertSqlSafe, SqlitePool};
 use tauri::{AppHandle, Manager};
 
 use crate::types::{CreateFollowupInput, Followup, UpdateFollowupInput};
@@ -15,17 +15,17 @@ pub async fn list_followups(
     let pool = app.state::<SqlitePool>();
     let followups = match status {
         Some(ref s) => {
-            sqlx::query_as::<_, Followup>(&format!(
+            sqlx::query_as::<_, Followup>(AssertSqlSafe(format!(
             "SELECT {FOLLOWUP_COLUMNS} FROM followups WHERE status = ? ORDER BY scheduled_date ASC"
-        ))
+        )))
             .bind(s)
             .fetch_all(pool.inner())
             .await
         }
         None => {
-            sqlx::query_as::<_, Followup>(&format!(
+            sqlx::query_as::<_, Followup>(AssertSqlSafe(format!(
                 "SELECT {FOLLOWUP_COLUMNS} FROM followups ORDER BY scheduled_date ASC"
-            ))
+            )))
             .fetch_all(pool.inner())
             .await
         }
@@ -43,9 +43,9 @@ pub async fn list_followups_for_job(
     job_id: String,
 ) -> Result<Vec<Followup>, String> {
     let pool = app.state::<SqlitePool>();
-    sqlx::query_as::<_, Followup>(&format!(
+    sqlx::query_as::<_, Followup>(AssertSqlSafe(format!(
         "SELECT {FOLLOWUP_COLUMNS} FROM followups WHERE job_id = ? ORDER BY scheduled_date ASC"
-    ))
+    )))
     .bind(&job_id)
     .fetch_all(pool.inner())
     .await
@@ -78,9 +78,9 @@ pub async fn create_followup(
         format!("Failed to create followup: {e}")
     })?;
 
-    sqlx::query_as::<_, Followup>(&format!(
+    sqlx::query_as::<_, Followup>(AssertSqlSafe(format!(
         "SELECT {FOLLOWUP_COLUMNS} FROM followups WHERE id = ?"
-    ))
+    )))
     .bind(&id)
     .fetch_one(pool.inner())
     .await
@@ -123,9 +123,9 @@ pub async fn update_followup(
     );
 
     if set_clauses.is_empty() {
-        return sqlx::query_as::<_, Followup>(&format!(
+        return sqlx::query_as::<_, Followup>(AssertSqlSafe(format!(
             "SELECT {FOLLOWUP_COLUMNS} FROM followups WHERE id = ?"
-        ))
+        )))
         .bind(&id)
         .fetch_optional(pool.inner())
         .await
@@ -133,11 +133,12 @@ pub async fn update_followup(
         .ok_or_else(|| "Followup not found".to_string());
     }
 
+    // Column fragments come only from the literal allowlist in maybe_set!; values stay bound.
     let sql = format!(
         "UPDATE followups SET {} WHERE id = ?",
         set_clauses.join(", ")
     );
-    let mut query = sqlx::query(&sql);
+    let mut query = sqlx::query(AssertSqlSafe(sql));
     for val in &values {
         query = query.bind(val);
     }
@@ -152,9 +153,9 @@ pub async fn update_followup(
         return Err("Followup not found".to_string());
     }
 
-    sqlx::query_as::<_, Followup>(&format!(
+    sqlx::query_as::<_, Followup>(AssertSqlSafe(format!(
         "SELECT {FOLLOWUP_COLUMNS} FROM followups WHERE id = ?"
-    ))
+    )))
     .bind(&id)
     .fetch_one(pool.inner())
     .await

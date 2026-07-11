@@ -253,7 +253,7 @@ pub fn run() {
 
                 // Run migrations
                 for sql in MIGRATIONS {
-                    let result = sqlx::query(sql).execute(&pool).await;
+                    let result = sqlx::query(*sql).execute(&pool).await;
                     match result {
                         Ok(_) => {}
                         Err(e) => {
