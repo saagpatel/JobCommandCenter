@@ -1,9 +1,16 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  type QueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { logger } from '@/lib/logger'
 import { commands, unwrapResult } from '@/lib/tauri-bindings'
+import { analyticsQueryKeys } from '@/services/analytics'
 import type {
   Followup,
+  FollowupEvent,
   CreateFollowupInput,
   UpdateFollowupInput,
 } from '@/lib/bindings'
@@ -12,6 +19,18 @@ export const followupQueryKeys = {
   all: ['followups'] as const,
   list: (status?: string) => ['followups', 'list', { status }] as const,
   forJob: (jobId: string) => ['followups', 'forJob', jobId] as const,
+  events: (followupId: string) => ['followups', 'events', followupId] as const,
+  eventsForJob: (jobId: string) =>
+    ['followups', 'eventsForJob', jobId] as const,
+}
+
+async function invalidateFollowupViews(queryClient: QueryClient) {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: followupQueryKeys.all }),
+    queryClient.invalidateQueries({
+      queryKey: analyticsQueryKeys.sidebarCounts,
+    }),
+  ])
 }
 
 export function useFollowups(status?: string) {
@@ -38,6 +57,29 @@ export function useFollowupsForJob(jobId: string | null) {
   })
 }
 
+export function useFollowupEvents(followupId: string, enabled = true) {
+  return useQuery({
+    queryKey: followupQueryKeys.events(followupId),
+    queryFn: async (): Promise<FollowupEvent[]> => {
+      const result = await commands.listFollowupEvents(followupId)
+      return unwrapResult(result)
+    },
+    enabled,
+    staleTime: 30_000,
+  })
+}
+
+export function useFollowupEventsForJob(jobId: string) {
+  return useQuery({
+    queryKey: followupQueryKeys.eventsForJob(jobId),
+    queryFn: async (): Promise<FollowupEvent[]> => {
+      const result = await commands.listFollowupEventsForJob(jobId)
+      return unwrapResult(result)
+    },
+    staleTime: 30_000,
+  })
+}
+
 export function useCreateFollowup() {
   const queryClient = useQueryClient()
 
@@ -46,8 +88,8 @@ export function useCreateFollowup() {
       const result = await commands.createFollowup(input)
       return unwrapResult(result)
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: followupQueryKeys.all })
+    onSuccess: async () => {
+      await invalidateFollowupViews(queryClient)
       toast.success('Follow-up created')
     },
     onError: (error: unknown) => {
@@ -73,8 +115,8 @@ export function useUpdateFollowup() {
       const result = await commands.updateFollowup(id, input)
       return unwrapResult(result)
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: followupQueryKeys.all })
+    onSuccess: async () => {
+      await invalidateFollowupViews(queryClient)
     },
     onError: (error: unknown) => {
       logger.error('Failed to update followup', { error })
@@ -93,8 +135,8 @@ export function useDeleteFollowup() {
       const result = await commands.deleteFollowup(id)
       return unwrapResult(result)
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: followupQueryKeys.all })
+    onSuccess: async () => {
+      await invalidateFollowupViews(queryClient)
       toast.success('Follow-up deleted')
     },
     onError: (error: unknown) => {

@@ -15,7 +15,7 @@ detection, what's known to trigger detection anyway, and what's not handled.
 
 The adapter never logs in programmatically. It reuses a Playwright browser
 context (`pw_manager.get_context("linkedin")`) that the operator pre-logged
-into via **Settings → Platforms → LinkedIn → Log In**. That login is done in
+into via **Settings → Platforms → LinkedIn → Login**. That login is done in
 a visible Chromium window where the operator solves any 2FA / CAPTCHA / device
 verification challenge themselves. The resulting cookies + storage state
 persist on disk.
@@ -23,12 +23,31 @@ persist on disk.
 Effect: LinkedIn sees a normal logged-in browser. The fingerprint is real
 Chromium (not headless Chrome, not requests/httpx).
 
-The adapter refuses to submit at all if no session exists:
+Profile files alone are not proof of authentication. JCC records a successful
+visible login, but after every app restart the saved profile is shown as
+**Verification required** until LinkedIn redirects to its authenticated feed.
+The adapter refuses to submit unless that verification happened in the current
+app run:
 
 ```python
-if self._pw_manager and not self._pw_manager.session_exists("linkedin"):
-    errors.append("No LinkedIn session found. Please log in first via Settings > Platforms.")
+if self._pw_manager and not self._pw_manager.session_authenticated("linkedin"):
+    errors.append("LinkedIn session is not verified. Verify it first via Settings > Platforms.")
 ```
+
+Job URLs are parsed and checked against the exact HTTPS `linkedin.com` origin
+before a browser is opened. Lookalike hosts, embedded credentials, nonstandard
+ports, and insecure URLs are rejected. Every post-click transition is checked
+again; a login or checkpoint redirect revokes verification, while navigation
+outside LinkedIn stops as a manual handoff.
+
+The persistent browser context blocks service workers and intercepts initial
+top-level requests. A Chromium response-stage guard separately checks each HTTP
+redirect before the next destination is requested. External redirect targets
+are aborted; trusted in-page redirect chains continue. All popup and new-window
+requests stop for manual handoff because their response guard cannot be
+attached safely before the first navigation. Ordinary page assets and iframe
+content continue to load. Manual-handoff evidence strips credentials, query
+parameters, and fragments from the destination URL.
 
 ### 2. Hard rate limits (session-level)
 
@@ -159,9 +178,10 @@ intra-action human variance.
 
 ### Before a batch
 
-1. Settings → Platforms → LinkedIn → confirm "Logged in".
-2. If not logged in, click Log In and complete login in the visible browser
-   (solve any CAPTCHAs/2FA there). The session persists.
+1. Settings → Platforms → LinkedIn → confirm **Connected**.
+2. If **Verification required**, click **Verify session**. Complete login in
+   the visible browser if LinkedIn asks (including CAPTCHAs/2FA). The browser
+   profile persists, but JCC re-verifies it once per app run.
 3. Check `_submission_count` is fresh (app restart resets it).
 
 ### During a batch

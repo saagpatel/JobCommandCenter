@@ -5,7 +5,8 @@ import {
   Send,
   XCircle,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,19 +25,28 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { logger } from '@/lib/logger'
 import { SIDECAR_URL } from '@/lib/sidecar'
-import type { Job, SidecarState } from '@/lib/tauri-bindings'
-import { commands } from '@/lib/tauri-bindings'
+import type { Job, SidecarState, SubmissionReceipt } from '@/lib/tauri-bindings'
+import { commands, unwrapResult } from '@/lib/tauri-bindings'
 import { cn } from '@/lib/utils'
 import { useJobs, useUpdateJob } from '@/services/jobs'
 import { useProfile } from '@/services/profile'
 import { useSidecarStatus } from '@/services/sidecar'
+import {
+  submissionQueryKeys,
+  useResolveSubmissionReceipts,
+} from '@/services/submissions'
 
 interface SubmissionResult {
   job_id: string
   company: string
   role: string
   adapter: string
-  status: 'success' | 'failed' | 'dry_run' | 'manual_required'
+  status:
+    | 'success'
+    | 'failed'
+    | 'dry_run'
+    | 'manual_required'
+    | 'unknown_outcome'
   resume_uploaded: boolean
   cover_letter_uploaded: boolean
   fields_filled: string[]
@@ -76,6 +86,7 @@ function ResultIcon({ status }: { status: SubmissionResult['status'] }) {
     case 'failed':
       return <XCircle className="size-4 text-red-500" />
     case 'manual_required':
+    case 'unknown_outcome':
       return <AlertTriangle className="size-4 text-yellow-500" />
   }
 }
@@ -99,6 +110,8 @@ function formatStatus(status: SubmissionResult['status']): string {
       return 'Dry run'
     case 'manual_required':
       return 'Manual Required'
+    case 'unknown_outcome':
+      return 'Unknown Outcome'
     default:
       return status.charAt(0).toUpperCase() + status.slice(1)
   }
@@ -125,6 +138,52 @@ function basename(filePath: string): string {
   return filePath.split('/').pop() ?? filePath
 }
 
+function loadUnknownJobIds(): Set<string> {
+  try {
+    const value: unknown = JSON.parse(
+      window.localStorage.getItem('jcc-unknown-submission-job-ids') ?? '[]'
+    )
+    return new Set(
+      Array.isArray(value)
+        ? value.filter((item): item is string => typeof item === 'string')
+        : []
+    )
+  } catch {
+    return new Set()
+  }
+}
+
+function parseReceiptFields(raw: string): string[] {
+  try {
+    const value: unknown = JSON.parse(raw)
+    return Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === 'string')
+      : []
+  } catch {
+    return []
+  }
+}
+
+function resultFromReceipt(receipt: SubmissionReceipt): SubmissionResult {
+  return {
+    job_id: receipt.job_id,
+    company: '',
+    role: '',
+    adapter: receipt.adapter,
+    status:
+      receipt.status === 'manual_required'
+        ? 'manual_required'
+        : 'unknown_outcome',
+    resume_uploaded: receipt.resume_uploaded,
+    cover_letter_uploaded: receipt.cover_letter_uploaded,
+    fields_filled: parseReceiptFields(receipt.fields_filled),
+    fields_skipped: parseReceiptFields(receipt.fields_skipped),
+    error: receipt.error,
+    duration_seconds: receipt.duration_seconds,
+    timestamp: receipt.created_at,
+  }
+}
+
 export function SubmitConsole() {
   const [selectedJobIds, setSelectedJobIds] = useState<Set<string>>(new Set())
   const [statusFilter, setStatusFilter] = useState('saved')
@@ -132,11 +191,55 @@ export function SubmitConsole() {
     Map<string, SubmissionResult>
   >(new Map())
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [unresolvedJobIds, setUnresolvedJobIds] =
+    useState<Set<string>>(loadUnknownJobIds)
+  const [recoveryLoaded, setRecoveryLoaded] = useState(false)
+  const [recoveryError, setRecoveryError] = useState<string | null>(null)
 
   const { data: jobs = [] } = useJobs(statusFilter)
   const { data: profile } = useProfile()
   const { data: sidecarStatus } = useSidecarStatus()
   const updateJob = useUpdateJob()
+  const queryClient = useQueryClient()
+  const resolveSubmissionReceipts = useResolveSubmissionReceipts()
+
+  useEffect(() => {
+    let active = true
+    async function loadDurableRecoveryState() {
+      try {
+        const receipts = unwrapResult(
+          await commands.listUnresolvedSubmissionReceipts()
+        )
+        if (!active) return
+        setUnresolvedJobIds(previous => {
+          const next = new Set(previous)
+          for (const receipt of receipts) next.add(receipt.job_id)
+          return next
+        })
+        setSubmissionResults(previous => {
+          const next = new Map(previous)
+          for (const receipt of receipts) {
+            next.set(receipt.job_id, resultFromReceipt(receipt))
+          }
+          return next
+        })
+      } catch (error) {
+        if (!active) return
+        logger.error('Failed to load durable submission recovery state', {
+          error: error instanceof Error ? error.message : String(error),
+        })
+        setRecoveryError(
+          'Submission recovery state could not be verified. Restart the app before submitting.'
+        )
+      } finally {
+        if (active) setRecoveryLoaded(true)
+      }
+    }
+    void loadDurableRecoveryState()
+    return () => {
+      active = false
+    }
+  }, [])
 
   const sidecarState: SidecarState = sidecarStatus?.state ?? 'Stopped'
   const isHealthy = sidecarState === 'Healthy'
@@ -164,15 +267,46 @@ export function SubmitConsole() {
     }
   }
 
+  async function resolveUncertainOutcome(jobId: string) {
+    try {
+      await resolveSubmissionReceipts.mutateAsync(jobId)
+      setUnresolvedJobIds(previous => {
+        const next = new Set(previous)
+        next.delete(jobId)
+        window.localStorage.setItem(
+          'jcc-unknown-submission-job-ids',
+          JSON.stringify([...next])
+        )
+        return next
+      })
+      setSubmissionResults(prev => {
+        const next = new Map(prev)
+        next.delete(jobId)
+        return next
+      })
+      setRecoveryError(null)
+    } catch (error) {
+      logger.error('Failed to resolve durable submission receipt', {
+        jobId,
+        error: error instanceof Error ? error.message : String(error),
+      })
+      setRecoveryError(
+        'The recovery receipt could not be updated. Retry remains blocked.'
+      )
+    }
+  }
+
   const allSelected = jobs.length > 0 && selectedCount === jobs.length
 
   async function handleSubmit(dryRun: boolean) {
     if (!profile) return
+    const receivedJobIds = new Set<string>()
     setIsSubmitting(true)
     setSubmissionResults(new Map())
 
     const body = {
       jobs: selectedJobs.map(j => ({
+        id: j.id,
         company: j.company,
         role: j.role,
         ats: j.ats,
@@ -199,6 +333,115 @@ export function SubmitConsole() {
       dry_run: dryRun,
     }
 
+    async function persistReceipt(result: SubmissionResult) {
+      unwrapResult(
+        await commands.recordSubmissionReceipt({
+          job_id: result.job_id,
+          adapter: result.adapter,
+          status: result.status,
+          resume_uploaded: result.resume_uploaded,
+          cover_letter_uploaded: result.cover_letter_uploaded,
+          fields_filled: result.fields_filled,
+          fields_skipped: result.fields_skipped,
+          error: result.error,
+          duration_seconds: result.duration_seconds,
+          timestamp: result.timestamp,
+        })
+      )
+      await queryClient.invalidateQueries({
+        queryKey: submissionQueryKeys.all,
+      })
+    }
+
+    async function recordUnknownOutcomes() {
+      const unresolved = selectedJobs.filter(job => !receivedJobIds.has(job.id))
+      if (unresolved.length === 0) return
+
+      const nextUnknown = new Set(unresolvedJobIds)
+      for (const job of unresolved) {
+        nextUnknown.add(job.id)
+        const unknownResult: SubmissionResult = {
+          job_id: job.id,
+          company: job.company,
+          role: job.role,
+          adapter: job.ats,
+          status: 'unknown_outcome',
+          resume_uploaded: false,
+          cover_letter_uploaded: false,
+          fields_filled: [],
+          fields_skipped: [],
+          error:
+            'The connection ended before a durable receipt arrived. Verify the ATS or tracker before any retry.',
+          duration_seconds: 0,
+          timestamp: new Date().toISOString(),
+        }
+        setSubmissionResults(prev => new Map(prev).set(job.id, unknownResult))
+        try {
+          await persistReceipt(unknownResult)
+        } catch (error) {
+          logger.error('Failed to persist unknown-outcome receipt', {
+            jobId: job.id,
+            error: error instanceof Error ? error.message : String(error),
+          })
+          setRecoveryError(
+            'The database receipt could not be saved. A local safety block is active; restart only after storage is healthy.'
+          )
+        }
+      }
+      setUnresolvedJobIds(nextUnknown)
+      window.localStorage.setItem(
+        'jcc-unknown-submission-job-ids',
+        JSON.stringify([...nextUnknown])
+      )
+      await queryClient.invalidateQueries({
+        queryKey: submissionQueryKeys.all,
+      })
+    }
+
+    async function handleResult(result: SubmissionResult) {
+      const matchedJob = selectedJobs.find(j => j.id === result.job_id)
+      if (!matchedJob) {
+        throw new Error(`Receipt referenced unknown job ${result.job_id}`)
+      }
+      setSubmissionResults(prev => new Map(prev).set(result.job_id, result))
+
+      if (!dryRun) {
+        await persistReceipt(result)
+      }
+      if (!dryRun && result.status === 'manual_required') {
+        setUnresolvedJobIds(previous => new Set(previous).add(result.job_id))
+      }
+      if (!dryRun && result.status === 'success') {
+        await updateJob.mutateAsync({
+          id: matchedJob.id,
+          input: {
+            company: null,
+            role: null,
+            ats: null,
+            apply_url: null,
+            status: 'applied',
+            tier: null,
+            job_posting_id: null,
+            board_token: null,
+            source: null,
+            resume_path: null,
+            cover_letter_path: null,
+            custom_fields: null,
+            notes: null,
+            applied_at: new Date().toISOString(),
+            follow_up_date: new Date(
+              Date.now() + 7 * 24 * 60 * 60 * 1000
+            ).toISOString(),
+            response_date: null,
+            salary_range: null,
+            location: null,
+            jd_url: null,
+          },
+        })
+      }
+      receivedJobIds.add(result.job_id)
+    }
+
     try {
       // Live (non-dry-run) submits require the per-session submit token, held
       // only by this app and fetched over Tauri IPC so a rogue local process
@@ -215,12 +458,18 @@ export function SubmitConsole() {
         headers,
         body: JSON.stringify(body),
       })
+      if (!response.ok) {
+        throw new Error(`Submission service returned ${response.status}`)
+      }
 
       const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('Submission service returned no receipt stream')
+      }
       const decoder = new TextDecoder()
       let buffer = ''
 
-      while (reader) {
+      while (true) {
         const { done, value } = await reader.read()
         if (done) break
 
@@ -231,56 +480,40 @@ export function SubmitConsole() {
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const result: SubmissionResult = JSON.parse(line.slice(6))
-            setSubmissionResults(prev =>
-              new Map(prev).set(result.job_id, result)
-            )
-
-            if (!dryRun && result.status === 'success') {
-              const matchedJob = selectedJobs.find(
-                j => j.company === result.company && j.role === result.role
-              )
-              if (matchedJob) {
-                updateJob.mutate({
-                  id: matchedJob.id,
-                  input: {
-                    company: null,
-                    role: null,
-                    ats: null,
-                    apply_url: null,
-                    status: 'applied',
-                    tier: null,
-                    job_posting_id: null,
-                    board_token: null,
-                    source: null,
-                    resume_path: null,
-                    cover_letter_path: null,
-                    custom_fields: null,
-                    notes: null,
-                    applied_at: new Date().toISOString(),
-                    follow_up_date: new Date(
-                      Date.now() + 7 * 24 * 60 * 60 * 1000
-                    ).toISOString(),
-                    response_date: null,
-                    salary_range: null,
-                    location: null,
-                    jd_url: null,
-                  },
-                })
-              }
-            }
+            await handleResult(result)
           }
         }
+      }
+      const finalLine = buffer.trim()
+      if (finalLine.startsWith('data: ')) {
+        const result: SubmissionResult = JSON.parse(finalLine.slice(6))
+        await handleResult(result)
+      }
+      if (!dryRun) {
+        await recordUnknownOutcomes()
       }
     } catch (err) {
       logger.error('Batch submission failed', {
         error: err instanceof Error ? err.message : String(err),
       })
+      if (!dryRun) {
+        await recordUnknownOutcomes()
+      }
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const actionsDisabled = selectedCount === 0 || !isHealthy || isSubmitting
+  const hasUnknownSelection = selectedJobs.some(job =>
+    unresolvedJobIds.has(job.id)
+  )
+  const actionsDisabled =
+    selectedCount === 0 ||
+    !isHealthy ||
+    isSubmitting ||
+    hasUnknownSelection ||
+    !recoveryLoaded ||
+    recoveryError !== null
 
   return (
     <div className="flex h-full flex-col">
@@ -363,6 +596,10 @@ export function SubmitConsole() {
                     key={job.id}
                     job={job}
                     result={submissionResults.get(job.id) ?? null}
+                    hasUnresolvedOutcome={unresolvedJobIds.has(job.id)}
+                    onResolveUncertain={() =>
+                      void resolveUncertainOutcome(job.id)
+                    }
                   />
                 ))}
               </div>
@@ -392,9 +629,15 @@ export function SubmitConsole() {
       {/* Action Bar */}
       <div className="flex items-center justify-between border-t p-4">
         <span className="text-sm text-muted-foreground">
-          {selectedCount === 0
-            ? 'No jobs selected'
-            : `${selectedCount} job${selectedCount === 1 ? '' : 's'} selected`}
+          {recoveryError
+            ? recoveryError
+            : !recoveryLoaded
+              ? 'Verifying durable submission recovery state…'
+              : hasUnknownSelection
+                ? 'Unresolved submission: complete the recovery step before retrying'
+                : selectedCount === 0
+                  ? 'No jobs selected'
+                  : `${selectedCount} job${selectedCount === 1 ? '' : 's'} selected`}
         </span>
         <div className="flex gap-2">
           <Button
@@ -481,9 +724,13 @@ function JobRow({
 function JobPreviewCard({
   job,
   result,
+  hasUnresolvedOutcome,
+  onResolveUncertain,
 }: {
   job: Job
   result: SubmissionResult | null
+  hasUnresolvedOutcome: boolean
+  onResolveUncertain: () => void
 }) {
   const customFields = parseCustomFields(job.custom_fields)
 
@@ -544,6 +791,26 @@ function JobPreviewCard({
         )}
         {result?.error && (
           <p className="mt-1 text-xs text-red-500">{result.error}</p>
+        )}
+        {hasUnresolvedOutcome && (
+          <div className="mt-1 rounded-md border border-yellow-300 bg-yellow-50 p-2 text-yellow-900 dark:border-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-200">
+            <p>
+              {result?.status === 'manual_required'
+                ? 'This application needs a manual step. Complete or abandon it before allowing another automated attempt.'
+                : 'Submission outcome is unknown. Check the ATS or tracker before allowing another attempt.'}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-2 h-7"
+              onClick={onResolveUncertain}
+            >
+              {result?.status === 'manual_required'
+                ? 'I completed or abandoned this step'
+                : 'I checked the ATS'}
+            </Button>
+          </div>
         )}
         {result && (
           <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">

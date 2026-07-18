@@ -7,12 +7,14 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import { Plus, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, Plus, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import type { Job } from '@/lib/bindings'
 import { useJobs, useUpdateJob } from '@/services/jobs'
+import { useSubmissionRecoveryByJob } from '@/services/submissions'
 import { AddJobModal } from './AddJobModal'
 import { ImportPacketModal } from './ImportPacketModal'
 import { JobCard } from './JobCard'
@@ -29,6 +31,13 @@ const COLUMNS = [
 
 export function KanbanBoard() {
   const { data: jobs = [], isLoading } = useJobs()
+  const {
+    data: recoveryByJob = {},
+    isPending: recoveryPending,
+    isFetching: recoveryFetching,
+    isError: recoveryError,
+  } = useSubmissionRecoveryByJob()
+  const recoveryChecking = recoveryPending || recoveryFetching
   const updateJob = useUpdateJob()
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [importModalOpen, setImportModalOpen] = useState(false)
@@ -48,11 +57,41 @@ export function KanbanBoard() {
     const { active, over } = event
     if (!over) return
 
-    const jobId = active.id as string
-    const newStatus = over.id as string
+    const jobId = String(active.id)
+    const overId = String(over.id)
     const job = jobs.find(j => j.id === jobId)
+    const targetColumn = COLUMNS.find(column => column.id === overId)
+    const targetJob = jobs.find(candidate => candidate.id === overId)
+    const newStatus = targetColumn?.id ?? targetJob?.status
 
-    if (!job || job.status === newStatus) return
+    if (!job || !newStatus || job.status === newStatus) return
+
+    if (recoveryChecking) {
+      toast.error('Tracker move blocked', {
+        description:
+          'Submission recovery is still being verified. The lifecycle status was not changed.',
+      })
+      return
+    }
+
+    if (recoveryError) {
+      toast.error('Tracker move blocked', {
+        description:
+          'Submission recovery could not be verified. The lifecycle status was not changed.',
+      })
+      return
+    }
+
+    const recoveryStatus = recoveryByJob[jobId]
+    if (recoveryStatus) {
+      toast.error('Resolve submission recovery before moving this job', {
+        description:
+          recoveryStatus === 'manual_required'
+            ? 'Complete or abandon the manual step, then resolve its recovery receipt. The lifecycle status was not changed.'
+            : 'Check the ATS, then resolve the unknown outcome. The lifecycle status was not changed.',
+      })
+      return
+    }
 
     const appliedAt =
       newStatus === 'applied' && !job.applied_at
@@ -101,7 +140,22 @@ export function KanbanBoard() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b px-6 py-4">
-        <h1 className="text-2xl font-bold tracking-tight">Tracker</h1>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Tracker</h1>
+          {recoveryChecking ? (
+            <p role="status" className="text-xs text-muted-foreground">
+              Checking submission recovery…
+            </p>
+          ) : recoveryError ? (
+            <p
+              role="alert"
+              className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400"
+            >
+              <AlertTriangle className="h-3 w-3" aria-hidden="true" />
+              Recovery indicators unavailable
+            </p>
+          ) : null}
+        </div>
         <div className="flex items-center gap-2">
           <Button
             size="sm"
@@ -131,12 +185,19 @@ export function KanbanBoard() {
                 id={col.id}
                 label={col.label}
                 jobs={col.jobs}
+                recoveryByJob={recoveryByJob}
               />
             ))}
           </div>
 
           <DragOverlay>
-            {activeJob ? <JobCard job={activeJob} isOverlay /> : null}
+            {activeJob ? (
+              <JobCard
+                job={activeJob}
+                isOverlay
+                recoveryStatus={recoveryByJob[activeJob.id]}
+              />
+            ) : null}
           </DragOverlay>
         </DndContext>
         <ScrollBar orientation="horizontal" />

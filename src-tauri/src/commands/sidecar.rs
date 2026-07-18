@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::sync::OnceLock;
 use std::time::Instant;
+use std::{path::Path, path::PathBuf};
 
 use serde::Deserialize;
 use tauri::{AppHandle, Emitter, Manager};
@@ -16,6 +17,7 @@ const HEALTH_CHECK_TIMEOUT_SECS: u64 = 2;
 const STARTUP_TIMEOUT_SECS: u64 = 5;
 const SHUTDOWN_WAIT_SECS: u64 = 3;
 const MAX_CONSECUTIVE_FAILURES: u32 = 3;
+const BUNDLED_SIDECAR_NAME: &str = "jcc-sidecar";
 
 #[derive(Deserialize)]
 struct HealthResponse {
@@ -87,6 +89,7 @@ impl SidecarManager {
 pub type SharedSidecarManager = Arc<Mutex<SidecarManager>>;
 
 fn http_client() -> reqwest::Client {
+    let _ = rustls::crypto::ring::default_provider().install_default();
     reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(HEALTH_CHECK_TIMEOUT_SECS))
         .build()
@@ -114,63 +117,95 @@ fn emit_status(app: &AppHandle, status: &SidecarStatus) {
     }
 }
 
-async fn spawn_python_process() -> Result<tokio::process::Child, String> {
-    // In debug mode, run Python directly
-    // In release mode, would use bundled binary
+fn state_after_startup_probe(healthy: bool) -> SidecarState {
+    if healthy {
+        SidecarState::Healthy
+    } else {
+        // The spawned child may still be unpacking or initializing after the
+        // synchronous startup window. Keep it monitorable so a late health
+        // response can converge to Healthy and a real failure can use the
+        // bounded restart policy.
+        SidecarState::Unhealthy
+    }
+}
+
+fn bundled_sidecar_path(current_exe: &Path) -> Result<PathBuf, String> {
+    let executable_dir = current_exe.parent().ok_or_else(|| {
+        format!(
+            "Failed to determine executable directory from {}",
+            current_exe.display()
+        )
+    })?;
+    let file_name = if cfg!(windows) {
+        format!("{BUNDLED_SIDECAR_NAME}.exe")
+    } else {
+        BUNDLED_SIDECAR_NAME.to_string()
+    };
+    Ok(executable_dir.join(file_name))
+}
+
+fn debug_sidecar_script(project_root: &Path) -> Result<PathBuf, String> {
+    let candidate = project_root.join("../sidecar/src/main.py");
+    if candidate.exists() {
+        return Ok(candidate);
+    }
+
+    let alternate = project_root.join("sidecar/src/main.py");
+    if alternate.exists() {
+        return Ok(alternate);
+    }
+
+    Err(format!(
+        "Sidecar script not found. Checked:\n  {}\n  {}",
+        candidate.display(),
+        alternate.display()
+    ))
+}
+
+async fn spawn_sidecar_process() -> Result<tokio::process::Child, String> {
     let project_root =
         std::env::current_dir().map_err(|e| format!("Failed to get current dir: {e}"))?;
 
-    // Try to find sidecar relative to the project root or executable
-    let sidecar_script = if cfg!(debug_assertions) {
-        // During development: look relative to src-tauri/
-        let candidate = project_root.join("../sidecar/src/main.py");
-        if candidate.exists() {
-            candidate
+    let (program, argument) = if cfg!(debug_assertions) {
+        let sidecar_script = debug_sidecar_script(&project_root)?;
+        let sidecar_dir = sidecar_script
+            .parent()
+            .and_then(|path| path.parent())
+            .ok_or("Failed to determine sidecar directory")?;
+        let venv_python = sidecar_dir.join(".venv/bin/python3");
+        let python = if venv_python.exists() {
+            venv_python
         } else {
-            // Also try from project root directly
-            let alt = project_root.join("sidecar/src/main.py");
-            if alt.exists() {
-                alt
-            } else {
-                return Err(format!(
-                    "Sidecar script not found. Checked:\n  {}\n  {}",
-                    candidate.display(),
-                    alt.display()
-                ));
-            }
+            PathBuf::from("python3")
+        };
+        (python, Some(sidecar_script))
+    } else {
+        let current_exe =
+            std::env::current_exe().map_err(|e| format!("Failed to locate app executable: {e}"))?;
+        let sidecar = bundled_sidecar_path(&current_exe)?;
+        if !sidecar.is_file() {
+            return Err(format!(
+                "Bundled sidecar executable not found at {}",
+                sidecar.display()
+            ));
         }
-    } else {
-        // In release: use bundled binary
-        return Err("Release sidecar binary not yet implemented".to_string());
+        (sidecar, None)
     };
 
-    let sidecar_dir = sidecar_script
-        .parent()
-        .and_then(|p| p.parent())
-        .ok_or("Failed to determine sidecar directory")?;
+    log::info!("Spawning sidecar: {}", program.display());
 
-    // Check for venv and use its Python if available
-    let venv_python = sidecar_dir.join(".venv/bin/python3");
-    let python_cmd = if venv_python.exists() {
-        venv_python.to_string_lossy().to_string()
-    } else {
-        "python3".to_string()
-    };
-
-    log::info!(
-        "Spawning sidecar: {} {}",
-        python_cmd,
-        sidecar_script.display()
-    );
-
-    tokio::process::Command::new(&python_cmd)
-        .arg(&sidecar_script)
+    let mut command = tokio::process::Command::new(&program);
+    if let Some(argument) = argument {
+        command.arg(argument);
+    }
+    command
         .env("JCC_SUBMIT_TOKEN", submit_token())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
+        .env("JCC_PARENT_PID", std::process::id().to_string())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
         .kill_on_drop(true)
         .spawn()
-        .map_err(|e| format!("Failed to spawn sidecar process: {e}"))
+        .map_err(|e| format!("Failed to spawn sidecar process {}: {e}", program.display()))
 }
 
 /// Internal start logic shared by command and auto-start
@@ -202,7 +237,7 @@ pub async fn start_sidecar_internal(app: &AppHandle) -> Result<SidecarStatus, St
     }
 
     // Spawn the process
-    let child = spawn_python_process().await?;
+    let child = spawn_sidecar_process().await?;
 
     {
         let mut mgr = manager.lock().await;
@@ -223,13 +258,14 @@ pub async fn start_sidecar_internal(app: &AppHandle) -> Result<SidecarStatus, St
     }
 
     let mut mgr = manager.lock().await;
+    mgr.state = state_after_startup_probe(healthy);
     if healthy {
-        mgr.state = SidecarState::Healthy;
         mgr.consecutive_failures = 0;
         log::info!("Sidecar started successfully on port {SIDECAR_PORT}");
     } else {
-        mgr.state = SidecarState::Failed;
-        log::error!("Sidecar failed to become healthy within {STARTUP_TIMEOUT_SECS}s");
+        log::warn!(
+            "Sidecar did not become healthy within {STARTUP_TIMEOUT_SECS}s; health monitoring will continue"
+        );
     }
 
     let status = mgr.status();
@@ -326,6 +362,7 @@ pub fn spawn_health_monitor(app: AppHandle) {
 
             if is_healthy {
                 if mgr.state != SidecarState::Healthy {
+                    log::info!("Sidecar health recovered");
                     mgr.state = SidecarState::Healthy;
                     let status = mgr.status();
                     emit_status(&app, &status);
@@ -361,7 +398,7 @@ pub fn spawn_health_monitor(app: AppHandle) {
                         drop(mgr);
 
                         // Spawn new process
-                        match spawn_python_process().await {
+                        match spawn_sidecar_process().await {
                             Ok(child) => {
                                 let mut mgr = manager.lock().await;
                                 mgr.child = Some(child);
@@ -439,4 +476,50 @@ pub async fn get_sidecar_status(app: AppHandle) -> Result<SidecarStatus, String>
     let manager = app.state::<SharedSidecarManager>();
     let mgr = manager.lock().await;
     Ok(mgr.status())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    #[test]
+    fn health_client_installs_a_crypto_provider_before_building() {
+        let client = super::http_client();
+        drop(client);
+    }
+
+    #[test]
+    fn startup_timeout_remains_monitorable_for_late_health_or_bounded_retry() {
+        assert_eq!(
+            super::state_after_startup_probe(false),
+            crate::types::SidecarState::Unhealthy
+        );
+        assert_eq!(
+            super::state_after_startup_probe(true),
+            crate::types::SidecarState::Healthy
+        );
+    }
+
+    #[test]
+    fn bundled_sidecar_is_resolved_next_to_the_app_executable() {
+        let executable = if cfg!(windows) {
+            Path::new(r"C:\Program Files\JCC\job-command-center.exe")
+        } else {
+            Path::new("/Applications/Job Command Center.app/Contents/MacOS/job-command-center")
+        };
+        let expected = if cfg!(windows) {
+            Path::new(r"C:\Program Files\JCC\jcc-sidecar.exe")
+        } else {
+            Path::new("/Applications/Job Command Center.app/Contents/MacOS/jcc-sidecar")
+        };
+
+        assert_eq!(super::bundled_sidecar_path(executable).unwrap(), expected);
+    }
+
+    #[test]
+    fn bundled_sidecar_requires_an_executable_directory() {
+        let error = super::bundled_sidecar_path(Path::new("/"))
+            .expect_err("filesystem root has no executable parent");
+        assert!(error.contains("Failed to determine executable directory"));
+    }
 }

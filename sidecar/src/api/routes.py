@@ -3,11 +3,13 @@ from __future__ import annotations
 import hmac
 import time
 
+import structlog
 from fastapi import APIRouter, HTTPException, Request
 from starlette.responses import StreamingResponse
 
 from .models import (
     BatchSubmissionRequest,
+    BrowserReadinessResponse,
     DraftFollowupRequest,
     DraftFollowupResponse,
     FieldMappingRequest,
@@ -23,8 +25,15 @@ from .models import (
     SubmissionRequest,
     SubmissionResult,
 )
+from src.services.playwright_base import (
+    BlockedNavigation,
+    BrowserUnavailableError,
+    UntrustedPlatformUrlError,
+    wait_for_authenticated_session,
+)
 
 router = APIRouter()
+logger = structlog.get_logger(__name__)
 
 
 def check_submit_authorized(
@@ -65,7 +74,7 @@ async def submit_batch(request: Request, body: BatchSubmissionRequest) -> Stream
             adapter = registry.get(job.ats)
             if adapter is None:
                 result = SubmissionResult(
-                    job_id="",
+                    job_id=job.id or "",
                     company=job.company,
                     role=job.role,
                     adapter=job.ats,
@@ -78,6 +87,8 @@ async def submit_batch(request: Request, body: BatchSubmissionRequest) -> Stream
                 )
             else:
                 result = await adapter.submit(job, body.profile, body.dry_run)
+                if job.id:
+                    result = result.model_copy(update={"job_id": job.id})
             yield f"data: {result.model_dump_json()}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
@@ -94,7 +105,7 @@ async def submit(request: Request, body: SubmissionRequest) -> SubmissionResult:
     adapter = registry.get(body.job.ats)
     if adapter is None:
         return SubmissionResult(
-            job_id="",
+            job_id=body.job.id or "",
             company=body.job.company,
             role=body.job.role,
             adapter=body.job.ats,
@@ -105,7 +116,8 @@ async def submit(request: Request, body: SubmissionRequest) -> SubmissionResult:
             duration_seconds=0,
             timestamp="",
         )
-    return await adapter.submit(body.job, body.profile, body.dry_run)
+    result = await adapter.submit(body.job, body.profile, body.dry_run)
+    return result.model_copy(update={"job_id": body.job.id}) if body.job.id else result
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -132,11 +144,6 @@ _LOGIN_URLS: dict[str, str] = {
     "indeed": "https://secure.indeed.com/auth",
 }
 
-_SUCCESS_PATTERNS: dict[str, str] = {
-    "linkedin": "**/feed*",
-    "indeed": "**indeed.com/**",
-}
-
 _SUPPORTED_PLATFORMS = frozenset(_LOGIN_URLS.keys())
 
 
@@ -148,27 +155,116 @@ async def platform_login(request: Request, platform: str) -> PlatformLoginRespon
         )
 
     pw_mgr = request.app.state.playwright
-    ctx = await pw_mgr.get_context(platform)
-    page = await ctx.new_page()
-    await page.goto(_LOGIN_URLS[platform])
+    page = None
+    try:
+        ctx = await pw_mgr.get_context(platform)
+        pw_mgr.clear_blocked_navigations(platform)
+        page = await ctx.new_page()
+        await pw_mgr.prepare_page(platform, page)
+        pw_mgr.mark_session_unverified(platform)
+        await page.goto(_LOGIN_URLS[platform])
+        pw_mgr.raise_for_blocked_navigation(platform)
+    except BrowserUnavailableError as exc:
+        return PlatformLoginResponse(
+            platform=platform,
+            status="error",
+            message=str(exc),
+        )
+    except UntrustedPlatformUrlError as exc:
+        if page is not None:
+            await page.close()
+        return PlatformLoginResponse(
+            platform=platform,
+            status="error",
+            message=(
+                "Login stopped before leaving the trusted platform: "
+                f"{exc.url}"
+            ),
+        )
+    except Exception:
+        blocked = pw_mgr.take_blocked_navigation(platform)
+        if page is not None:
+            await page.close()
+        logger.exception("platform browser login failed to start", platform=platform)
+        return PlatformLoginResponse(
+            platform=platform,
+            status="error",
+            message=(
+                "Login stopped before leaving the trusted platform: "
+                f"{blocked.display_url}"
+                if isinstance(blocked, BlockedNavigation)
+                else (
+                    "The login browser could not open. Check browser readiness "
+                    "and retry."
+                )
+            ),
+        )
 
     try:
-        await page.wait_for_url(_SUCCESS_PATTERNS[platform], timeout=120_000)
-        await page.close()
+        try:
+            await wait_for_authenticated_session(page, platform)
+        except Exception:
+            blocked = pw_mgr.take_blocked_navigation(platform)
+            if isinstance(blocked, BlockedNavigation):
+                return PlatformLoginResponse(
+                    platform=platform,
+                    status="error",
+                    message=(
+                        "Login stopped before leaving the trusted platform: "
+                        f"{blocked.display_url}"
+                    ),
+                )
+            return PlatformLoginResponse(
+                platform=platform,
+                status="error",
+                message="Login was not verified within 2 minutes.",
+            )
+
+        try:
+            pw_mgr.mark_session_authenticated(platform)
+        except Exception:
+            logger.exception(
+                "platform session verification receipt could not be saved",
+                platform=platform,
+            )
+            return PlatformLoginResponse(
+                platform=platform,
+                status="error",
+                message=(
+                    "Login was observed, but Job Command Center could not save "
+                    "the verification receipt. Check profile folder permissions "
+                    "and retry."
+                ),
+            )
+
         return PlatformLoginResponse(platform=platform, status="logged_in")
-    except Exception:
-        await page.close()
-        return PlatformLoginResponse(
-            platform=platform, status="error", message="Login timed out after 2 minutes"
-        )
+    finally:
+        try:
+            await page.close()
+        except Exception:
+            logger.warning("platform login page did not close", platform=platform)
+
+
+@router.get("/playwright/readiness", response_model=BrowserReadinessResponse)
+async def playwright_readiness(request: Request) -> BrowserReadinessResponse:
+    readiness = await request.app.state.playwright.browser_readiness()
+    return BrowserReadinessResponse(
+        status=readiness.status,
+        source=readiness.source,
+        message=readiness.message,
+    )
 
 
 @router.get("/playwright/sessions", response_model=list[PlatformSessionStatus])
 async def list_sessions(request: Request) -> list[PlatformSessionStatus]:
     pw_mgr = request.app.state.playwright
     return [
-        PlatformSessionStatus(platform=p, has_session=pw_mgr.session_exists(p))
-        for p in ("linkedin", "indeed")
+        PlatformSessionStatus(
+            platform=platform,
+            status=(status := pw_mgr.session_status(platform)).status,
+            message=status.message,
+        )
+        for platform in ("linkedin", "indeed")
     ]
 
 

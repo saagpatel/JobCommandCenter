@@ -1,12 +1,15 @@
 import { open } from '@tauri-apps/plugin-dialog'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import {
+  AlertTriangle,
   CalendarClock,
+  CheckCircle2,
   ExternalLink,
   Eye,
   FolderOpen,
   Plus,
   Trash2,
+  XCircle,
 } from 'lucide-react'
 import { useRef } from 'react'
 import { toast } from 'sonner'
@@ -36,16 +39,29 @@ import { Separator } from '@/components/ui/separator'
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
 import type { UpdateJobInput } from '@/lib/bindings'
+import {
+  followupHistoryLabel,
+  followupHistoryTime,
+} from '@/lib/followup-history'
 import { logger } from '@/lib/logger'
 import { commands } from '@/lib/tauri-bindings'
 import { cn } from '@/lib/utils'
-import { useCreateFollowup, useFollowupsForJob } from '@/services/followups'
+import {
+  useCreateFollowup,
+  useFollowupEventsForJob,
+  useFollowupsForJob,
+} from '@/services/followups'
 import { useDeleteJob, useJob, useUpdateJob } from '@/services/jobs'
+import {
+  useResolveSubmissionReceipts,
+  useSubmissionReceiptsForJob,
+} from '@/services/submissions'
 import { useUIStore } from '@/store/ui-store'
 
 const STATUS_OPTIONS = [
@@ -194,7 +210,7 @@ export function JobDetailPanel() {
                   </Badge>
                 ) : null}
               </SheetTitle>
-              <p className="text-sm text-muted-foreground">{job.role}</p>
+              <SheetDescription>{job.role}</SheetDescription>
             </SheetHeader>
 
             <div className="mt-4 flex-1 space-y-4">
@@ -436,12 +452,7 @@ export function JobDetailPanel() {
 
               <Separator />
 
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">Submissions</Label>
-                <p className="text-sm text-muted-foreground">
-                  No submissions yet.
-                </p>
-              </div>
+              <SubmissionHistorySection jobId={job.id} />
 
               <Separator />
 
@@ -484,12 +495,218 @@ export function JobDetailPanel() {
   )
 }
 
+function submissionStatusLabel(status: string): string {
+  switch (status) {
+    case 'manual_required':
+      return 'Manual required'
+    case 'unknown_outcome':
+      return 'Unknown outcome'
+    case 'dry_run':
+      return 'Dry run'
+    default:
+      return status.charAt(0).toUpperCase() + status.slice(1)
+  }
+}
+
+function submissionStatusClass(status: string): string {
+  switch (status) {
+    case 'success':
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300'
+    case 'failed':
+      return 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300'
+    default:
+      return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300'
+  }
+}
+
+function SubmissionStatusIcon({ status }: { status: string }) {
+  switch (status) {
+    case 'success':
+      return <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+    case 'failed':
+      return <XCircle className="h-4 w-4 text-red-500" />
+    default:
+      return <AlertTriangle className="h-4 w-4 text-amber-500" />
+  }
+}
+
+function parseReceiptFieldCount(raw: string): number {
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.length : 0
+  } catch {
+    return 0
+  }
+}
+
+function formatReceiptTimestamp(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date)
+}
+
+function SubmissionHistorySection({ jobId }: { jobId: string }) {
+  const {
+    data: receipts,
+    isPending,
+    isError,
+  } = useSubmissionReceiptsForJob(jobId)
+  const resolveReceipts = useResolveSubmissionReceipts()
+  const unresolved = receipts?.find(
+    receipt =>
+      !receipt.resolved_at &&
+      (receipt.status === 'manual_required' ||
+        receipt.status === 'unknown_outcome')
+  )
+
+  return (
+    <section className="space-y-2" aria-labelledby="submission-history-heading">
+      <div className="flex items-center justify-between">
+        <Label
+          id="submission-history-heading"
+          className="text-muted-foreground"
+        >
+          Submissions
+        </Label>
+        {receipts && receipts.length > 0 ? (
+          <span className="text-xs text-muted-foreground">
+            {receipts.length} receipt{receipts.length === 1 ? '' : 's'}
+          </span>
+        ) : null}
+      </div>
+
+      {isPending ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          Loading submission history…
+        </p>
+      ) : isError ? (
+        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+          Submission history could not be loaded. Retry after the database is
+          available.
+        </p>
+      ) : !receipts || receipts.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No submissions yet.</p>
+      ) : (
+        <>
+          {unresolved ? (
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+              <p className="font-medium">Recovery action required</p>
+              <p className="mt-1 text-xs">
+                {unresolved.status === 'manual_required'
+                  ? 'Complete or abandon the manual application step before allowing another automated attempt.'
+                  : 'Verify the ATS or tracker before allowing another automated attempt.'}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2 h-7"
+                disabled={resolveReceipts.isPending}
+                onClick={() => resolveReceipts.mutate(jobId)}
+              >
+                {unresolved.status === 'manual_required'
+                  ? 'Mark manual step resolved'
+                  : 'Mark externally verified'}
+              </Button>
+            </div>
+          ) : null}
+
+          <ol className="space-y-2" aria-label="Submission receipt history">
+            {receipts.map(receipt => {
+              const fieldCount = parseReceiptFieldCount(receipt.fields_filled)
+              const isResolved =
+                receipt.resolved_at &&
+                (receipt.status === 'manual_required' ||
+                  receipt.status === 'unknown_outcome')
+              return (
+                <li
+                  key={receipt.id}
+                  className="rounded-md border bg-muted/20 p-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <SubmissionStatusIcon status={receipt.status} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">
+                          {submissionStatusLabel(receipt.status)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {receipt.adapter} ·{' '}
+                          {formatReceiptTimestamp(receipt.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      {isResolved ? (
+                        <Badge variant="outline" className="text-[10px]">
+                          Resolved
+                        </Badge>
+                      ) : null}
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'text-[10px]',
+                          submissionStatusClass(receipt.status)
+                        )}
+                      >
+                        {receipt.duration_seconds.toFixed(1)}s
+                      </Badge>
+                    </div>
+                  </div>
+                  {receipt.error ? (
+                    <p className="mt-2 break-words text-xs text-muted-foreground">
+                      {receipt.error}
+                    </p>
+                  ) : null}
+                  {fieldCount > 0 ? (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {fieldCount} field{fieldCount === 1 ? '' : 's'} filled
+                    </p>
+                  ) : null}
+                </li>
+              )
+            })}
+          </ol>
+        </>
+      )}
+    </section>
+  )
+}
+
+function followupStatusLabel(status: string): string {
+  switch (status) {
+    case 'pending':
+      return 'Pending'
+    case 'draft_ready':
+      return 'Draft Ready'
+    case 'send_unknown':
+      return 'Verify Send'
+    case 'sent':
+      return 'Sent'
+    default:
+      return status
+  }
+}
+
 function FollowupsSection({ jobId }: { jobId: string }) {
-  const { data: followups } = useFollowupsForJob(jobId)
+  const { data: followups, isPending, isError } = useFollowupsForJob(jobId)
+  const {
+    data: followupEvents,
+    isPending: eventsArePending,
+    isError: eventsAreError,
+  } = useFollowupEventsForJob(jobId)
   const createFollowup = useCreateFollowup()
   const setActiveView = useUIStore(state => state.setActiveView)
 
   const activeFollowups = followups?.filter(f => f.status !== 'skipped')
+  const hasOpenFollowup = followups?.some(f =>
+    ['pending', 'draft_ready', 'send_unknown'].includes(f.status)
+  )
+  const canCreateFollowup =
+    followups !== undefined && !isPending && !isError && !hasOpenFollowup
 
   function handleCreate() {
     const scheduledDate = new Date()
@@ -508,40 +725,107 @@ function FollowupsSection({ jobId }: { jobId: string }) {
           <CalendarClock className="h-3.5 w-3.5" />
           Follow-ups
         </Label>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 px-2 text-xs"
-          onClick={handleCreate}
-          disabled={createFollowup.isPending}
-        >
-          <Plus className="mr-1 h-3 w-3" />
-          Add
-        </Button>
+        {canCreateFollowup ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={handleCreate}
+            disabled={createFollowup.isPending}
+          >
+            <Plus className="mr-1 h-3 w-3" />
+            Add
+          </Button>
+        ) : null}
       </div>
-      {!activeFollowups || activeFollowups.length === 0 ? (
+      {isPending ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          Loading follow-ups…
+        </p>
+      ) : isError ? (
+        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+          Follow-ups could not be loaded. Retry after the database is available.
+        </p>
+      ) : !activeFollowups || activeFollowups.length === 0 ? (
         <p className="text-sm text-muted-foreground">No follow-ups yet.</p>
       ) : (
         <div className="space-y-1.5">
-          {activeFollowups.map(f => (
-            <button
-              key={f.id}
-              onClick={() => setActiveView('followups')}
-              className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50"
-            >
-              <span className="text-muted-foreground">
-                {f.scheduled_date.split('T')[0]}
-              </span>
-              <Badge
-                variant={f.status === 'sent' ? 'default' : 'outline'}
-                className="text-xs"
+          {activeFollowups.map(f => {
+            const needsSendVerification = f.status === 'send_unknown'
+            return (
+              <button
+                key={f.id}
+                onClick={() => setActiveView('followups')}
+                aria-label={
+                  needsSendVerification
+                    ? 'Verify Send. Check Gmail before sending again. Open Follow-up Manager.'
+                    : undefined
+                }
+                className={cn(
+                  'flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50',
+                  needsSendVerification &&
+                    'border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/15'
+                )}
               >
-                {f.status === 'draft_ready' ? 'Draft' : f.status}
-              </Badge>
-            </button>
-          ))}
+                <span className="min-w-0">
+                  <span className="block text-muted-foreground">
+                    {f.scheduled_date.split('T')[0]}
+                  </span>
+                  {needsSendVerification ? (
+                    <span className="mt-0.5 flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+                      <AlertTriangle
+                        aria-hidden="true"
+                        className="h-3 w-3 shrink-0"
+                      />
+                      Check Gmail before sending again.
+                    </span>
+                  ) : null}
+                </span>
+                <Badge
+                  variant={f.status === 'sent' ? 'default' : 'outline'}
+                  className={cn(
+                    'shrink-0 text-xs',
+                    needsSendVerification &&
+                      'border-amber-500/30 text-amber-700 dark:text-amber-400'
+                  )}
+                >
+                  {followupStatusLabel(f.status)}
+                </Badge>
+              </button>
+            )
+          })}
         </div>
       )}
+      <div className="border-t pt-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Activity history
+        </p>
+        {eventsArePending ? (
+          <p role="status" className="mt-2 text-xs text-muted-foreground">
+            Loading follow-up activity…
+          </p>
+        ) : eventsAreError ? (
+          <p role="alert" className="mt-2 text-xs text-destructive">
+            Follow-up activity could not be loaded. Retry after the database is
+            available.
+          </p>
+        ) : followupEvents?.length ? (
+          <ol className="mt-2 space-y-2">
+            {followupEvents.map(event => (
+              <li key={event.id} className="text-xs">
+                <p className="font-medium">{followupHistoryLabel(event)}</p>
+                <p className="text-muted-foreground">
+                  {followupHistoryTime(event)}
+                </p>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="mt-2 text-xs text-muted-foreground">
+            No follow-up activity recorded yet.
+          </p>
+        )}
+      </div>
     </div>
   )
 }

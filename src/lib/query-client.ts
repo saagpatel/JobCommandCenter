@@ -13,8 +13,9 @@ export const queryClient = new QueryClient({
       gcTime: 1000 * 60 * 10,
     },
     mutations: {
-      // Retry failed mutations 1 time
-      retry: 1,
+      // Mutations may have committed before an IPC response is lost. Callers
+      // must make retries explicit and idempotent instead of duplicating work.
+      retry: false,
     },
   },
 })

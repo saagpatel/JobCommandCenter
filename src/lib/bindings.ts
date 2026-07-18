@@ -172,6 +172,38 @@ async deleteJob(id: string) : Promise<Result<boolean, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async recordSubmissionReceipt(input: RecordSubmissionReceiptInput) : Promise<Result<SubmissionReceipt, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("record_submission_receipt", { input }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async listUnresolvedSubmissionReceipts() : Promise<Result<SubmissionReceipt[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_unresolved_submission_receipts") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async listSubmissionReceiptsForJob(jobId: string) : Promise<Result<SubmissionReceipt[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_submission_receipts_for_job", { jobId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async resolveSubmissionReceipts(jobId: string) : Promise<Result<boolean, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("resolve_submission_receipts", { jobId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 /**
  * Verify a VAP manifest and import it as a tracked job. Never submits.
  */
@@ -194,6 +226,22 @@ async listFollowups(status: string | null) : Promise<Result<Followup[], string>>
 async listFollowupsForJob(jobId: string) : Promise<Result<Followup[], string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("list_followups_for_job", { jobId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async listFollowupEvents(followupId: string) : Promise<Result<FollowupEvent[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_followup_events", { followupId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async listFollowupEventsForJob(jobId: string) : Promise<Result<FollowupEvent[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_followup_events_for_job", { jobId }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -451,6 +499,7 @@ export type CreateFollowupInput = { job_id: string; scheduled_date: string; reci
 export type CreateJobInput = { company: string; role: string; ats: string; apply_url: string; status: string | null; tier: string | null; job_posting_id: string | null; board_token: string | null; source: string | null; resume_path: string | null; cover_letter_path: string | null; custom_fields: string | null; notes: string | null; salary_range: string | null; location: string | null; jd_url: string | null }
 export type CreateNoteInput = { job_id: string; note_type: string; title: string; content: string }
 export type Followup = { id: string; job_id: string; draft_subject: string | null; draft_body: string | null; status: string; scheduled_date: string; sent_at: string | null; gmail_message_id: string | null; recipient_email: string | null; created_at: string }
+export type FollowupEvent = { id: string; followup_id: string; from_status: string | null; to_status: string; reason: string; occurred_at: string }
 export type ImportPacketInput = { 
 /**
  * Absolute path to the packet's `packet.manifest.json`.
@@ -477,7 +526,11 @@ signed: boolean;
 /**
  * Signing key fingerprint, if the manifest carried a signature.
  */
-public_key_id: string | null }
+public_key_id: string | null;
+/**
+ * True when this packet was already present and the existing tracker job was returned.
+ */
+already_imported: boolean }
 export type Job = { id: string; company: string; role: string; ats: string; apply_url: string; job_posting_id: string | null; board_token: string | null; status: string; tier: string; source: string | null; resume_path: string | null; cover_letter_path: string | null; custom_fields: string | null; notes: string | null; applied_at: string | null; follow_up_date: string | null; response_date: string | null; salary_range: string | null; location: string | null; jd_url: string | null; 
 /**
  * VAP provenance: the source packet's application-identity id (if imported).
@@ -495,6 +548,7 @@ export type JsonValue = null | boolean | number | string | JsonValue[] | Partial
 export type Note = { id: string; job_id: string; note_type: string; title: string; content: string; created_at: string; updated_at: string }
 export type PipelineFunnel = { saved: number; applied: number; interviewing: number; offer: number; rejected: number }
 export type Profile = { id: number; first_name: string; last_name: string; email: string; phone: string; linkedin_url: string; location: string; authorized_to_work: boolean; requires_sponsorship: boolean; preferred_name: string | null; base_resume_path: string | null; follow_up_days: number; updated_at: string }
+export type RecordSubmissionReceiptInput = { job_id: string; adapter: string; status: string; resume_uploaded: boolean; cover_letter_uploaded: boolean; fields_filled: string[]; fields_skipped: string[]; error: string | null; duration_seconds: number; timestamp: string }
 /**
  * Error types for recovery operations (typed for frontend matching)
  */
@@ -522,9 +576,10 @@ export type RecoveryError =
 export type SidebarCounts = { followups_due: number; prep_needed: number }
 export type SidecarState = "Starting" | "Healthy" | "Unhealthy" | "Stopped" | "Failed"
 export type SidecarStatus = { state: SidecarState; pid: number | null; restart_count: number; uptime_seconds: number | null }
+export type SubmissionReceipt = { id: string; job_id: string; adapter: string; status: string; resume_uploaded: boolean; cover_letter_uploaded: boolean; fields_filled: string; fields_skipped: string; error: string | null; duration_seconds: number; created_at: string; resolved_at: string | null }
 export type TierComparison = { tier1: TierStats; tier2: TierStats }
 export type TierStats = { applied: number; responded: number; interviewing: number; response_rate: number }
-export type UpdateFollowupInput = { draft_subject: string | null; draft_body: string | null; status: string | null; scheduled_date: string | null; sent_at: string | null; gmail_message_id: string | null; recipient_email: string | null }
+export type UpdateFollowupInput = { draft_subject: string | null; draft_body: string | null; status: string | null; scheduled_date: string | null; sent_at: string | null; gmail_message_id: string | null; recipient_email: string | null; transition_reason: string | null }
 export type UpdateJobInput = { company: string | null; role: string | null; ats: string | null; apply_url: string | null; status: string | null; tier: string | null; job_posting_id: string | null; board_token: string | null; source: string | null; resume_path: string | null; cover_letter_path: string | null; custom_fields: string | null; notes: string | null; applied_at: string | null; follow_up_date: string | null; response_date: string | null; salary_range: string | null; location: string | null; jd_url: string | null }
 export type UpdateNoteInput = { title: string | null; content: string | null }
 export type UpsertProfileInput = { first_name: string; last_name: string; email: string; phone: string; linkedin_url: string; location: string | null; authorized_to_work: boolean | null; requires_sponsorship: boolean | null; preferred_name: string | null; base_resume_path: string | null; follow_up_days: number | null }

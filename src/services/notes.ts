@@ -1,13 +1,28 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  type QueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { logger } from '@/lib/logger'
 import { commands, unwrapResult } from '@/lib/tauri-bindings'
+import { analyticsQueryKeys } from '@/services/analytics'
 import type { Note, CreateNoteInput, UpdateNoteInput } from '@/lib/bindings'
 
 export const noteQueryKeys = {
   all: ['notes'] as const,
   forJob: (jobId: string) => ['notes', 'forJob', jobId] as const,
   detail: (id: string) => ['notes', 'detail', id] as const,
+}
+
+async function invalidateNoteViews(queryClient: QueryClient) {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: noteQueryKeys.all }),
+    queryClient.invalidateQueries({
+      queryKey: analyticsQueryKeys.sidebarCounts,
+    }),
+  ])
 }
 
 export function useNotesForJob(jobId: string | null) {
@@ -44,8 +59,8 @@ export function useCreateNote() {
       const result = await commands.createNote(input)
       return unwrapResult(result)
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: noteQueryKeys.all })
+    onSuccess: async () => {
+      await invalidateNoteViews(queryClient)
     },
     onError: (error: unknown) => {
       logger.error('Failed to create note', { error })
@@ -70,8 +85,8 @@ export function useUpdateNote() {
       const result = await commands.updateNote(id, input)
       return unwrapResult(result)
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: noteQueryKeys.all })
+    onSuccess: async () => {
+      await invalidateNoteViews(queryClient)
     },
     onError: (error: unknown) => {
       logger.error('Failed to update note', { error })
@@ -90,8 +105,8 @@ export function useDeleteNote() {
       const result = await commands.deleteNote(id)
       return unwrapResult(result)
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: noteQueryKeys.all })
+    onSuccess: async () => {
+      await invalidateNoteViews(queryClient)
       toast.success('Note deleted')
     },
     onError: (error: unknown) => {

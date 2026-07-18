@@ -42,6 +42,40 @@ def _configure_structlog() -> None:
     )
 
 
+def _configured_parent_pid() -> int | None:
+    raw_pid = os.environ.get("JCC_PARENT_PID")
+    if raw_pid is None:
+        return None
+    try:
+        parent_pid = int(raw_pid)
+    except ValueError:
+        return None
+    return parent_pid if parent_pid > 0 else None
+
+
+def _parent_process_alive(parent_pid: int) -> bool:
+    try:
+        os.kill(parent_pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+async def _watch_parent(shutdown_event: asyncio.Event, parent_pid: int | None) -> None:
+    if parent_pid is None:
+        return
+
+    log = structlog.get_logger("jcc.parent")
+    while not shutdown_event.is_set():
+        await asyncio.sleep(1)
+        if not _parent_process_alive(parent_pid):
+            log.info("desktop parent exited; stopping sidecar", parent_pid=parent_pid)
+            shutdown_event.set()
+            return
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     log = structlog.get_logger("jcc.lifespan")
@@ -131,7 +165,11 @@ async def _run(shutdown_event: asyncio.Event) -> None:
         await shutdown_event.wait()
         server.should_exit = True
 
-    await asyncio.gather(server.serve(), _wait_for_shutdown())
+    await asyncio.gather(
+        server.serve(),
+        _wait_for_shutdown(),
+        _watch_parent(shutdown_event, _configured_parent_pid()),
+    )
 
 
 def main() -> None:

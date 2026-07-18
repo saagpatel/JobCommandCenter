@@ -191,7 +191,57 @@ The startup path applies these database settings before migrations run:
 - `PRAGMA foreign_keys=ON` so relational constraints are enforced.
 - `PRAGMA busy_timeout=5000` so short-lived writer contention retries before failing.
 
-Migrations are idempotent SQL statements stored in `MIGRATIONS` in `src-tauri/src/lib.rs`. Startup runs them before managing the pool as Tauri state. Duplicate-column migration errors are skipped intentionally for additive migrations that may already be present.
+Migrations are idempotent SQL statements stored in `SCHEMA_STATEMENTS` in
+`src-tauri/src/lib.rs`. Startup runs them before managing the pool as Tauri
+state. Duplicate-column migration errors are skipped intentionally for additive
+migrations that may already be present.
+
+### Follow-up Lifecycle Transactions
+
+`update_followup` reads the current row, validates its transition and merged
+fields, writes the update, and reads the committed result inside one SQLite
+transaction. Supported transitions are:
+
+- `pending` to `draft_ready`, `send_unknown`, or `skipped`;
+- `draft_ready` to `send_unknown` or `skipped`;
+- `send_unknown` to `sent` or back to `draft_ready` after operator
+  verification;
+- same-state updates for idempotency.
+
+`sent` and `skipped` cannot reopen. Draft-ready rows require a subject and body;
+send-unknown rows also require a recipient; sent rows additionally require
+`sent_at`. Schema version 3 normalizes the legacy `draft` status to
+`draft_ready`. Applied-job reconciliation treats `send_unknown` as an existing
+follow-up and cannot create a replacement until the operator resolves whether
+the original message was sent.
+
+Schema version 4 installs insert and update triggers that allow at most one
+`pending`, `draft_ready`, or `send_unknown` follow-up per job. The migration
+does not delete legacy duplicates, but it blocks new active rows until the
+existing lifecycle is resolved or skipped.
+
+Schema version 5 adds append-only `followup_events`. Every real status change
+must include a reason compatible with that transition, and the current row plus
+its event commit in the same transaction. This preserves distinctions such as
+Gmail acceptance, operator-verified delivery, operator-verified non-delivery,
+and an intentional skip. Existing rows receive one `legacy_state_imported`
+baseline at their original creation time; JCC does not invent transitions that
+predate history tracking. Repeated startup is idempotent and does not duplicate
+those baselines. Job Detail reads the full per-job timeline with one joined
+query, so skipped follow-ups remain visible without issuing one event query per
+follow-up.
+
+To exercise the complete migration against a disposable database snapshot, set
+`JCC_MIGRATION_FIXTURE_DB` to that copy and run:
+
+```bash
+cargo test --manifest-path src-tauri/Cargo.toml \
+  migration_tests::migration_upgrades_external_fixture_idempotently \
+  -- --ignored --exact
+```
+
+Never point this fixture test at the installed database: it intentionally runs
+the real migrations and a rolled-back trigger probe.
 
 ### Architecture Pattern
 

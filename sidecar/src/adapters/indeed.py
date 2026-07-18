@@ -9,9 +9,14 @@ from src.adapters.base import BaseAdapter
 from src.api.models import ApplicantProfile, JobListing, SubmissionResult
 from src.services.claude_ai import ClaudeAIService
 from src.services.playwright_base import (
+    BlockedNavigation,
+    PlatformSessionExpiredError,
     PlaywrightManager,
+    UntrustedPlatformUrlError,
     fill_field,
+    is_trusted_platform_url,
     random_delay,
+    require_trusted_platform_url,
     screenshot_on_failure,
     select_option,
     upload_file,
@@ -50,8 +55,10 @@ class IndeedAdapter(BaseAdapter):
         if job.ats != "indeed":
             errors.append(f"Expected ats='indeed', got '{job.ats}'")
 
-        if "indeed.com" not in (job.apply_url or ""):
-            errors.append("apply_url does not contain indeed.com")
+        if not is_trusted_platform_url("indeed", job.apply_url or ""):
+            errors.append(
+                "apply_url must use a trusted HTTPS Indeed origin (indeed.com)"
+            )
 
         resume = job.resume_path
         if resume:
@@ -61,8 +68,11 @@ class IndeedAdapter(BaseAdapter):
         else:
             errors.append("No resume_path provided")
 
-        if self._pw_manager and not self._pw_manager.session_exists("indeed"):
-            errors.append("No Indeed session found. Please log in first via Settings > Platforms.")
+        if self._pw_manager and not self._pw_manager.session_authenticated("indeed"):
+            errors.append(
+                "Indeed session is not verified. Verify it first via "
+                "Settings > Platforms."
+            )
 
         return errors
 
@@ -120,33 +130,54 @@ class IndeedAdapter(BaseAdapter):
                 timestamp=_now_iso(),
             )
 
+        if not self._pw_manager.session_authenticated("indeed"):
+            return SubmissionResult(
+                job_id=job_id,
+                company=job.company,
+                role=job.role,
+                adapter=self.name,
+                status="failed",
+                resume_uploaded=False,
+                cover_letter_uploaded=False,
+                error=(
+                    "Indeed session is not verified. Verify it first via "
+                    "Settings > Platforms."
+                ),
+                duration_seconds=time.monotonic() - start,
+                timestamp=_now_iso(),
+            )
+
+        if not is_trusted_platform_url("indeed", job.apply_url):
+            return SubmissionResult(
+                job_id=job_id,
+                company=job.company,
+                role=job.role,
+                adapter=self.name,
+                status="failed",
+                resume_uploaded=False,
+                cover_letter_uploaded=False,
+                error=(
+                    "apply_url must use a trusted HTTPS Indeed origin "
+                    "(indeed.com)."
+                ),
+                duration_seconds=time.monotonic() - start,
+                timestamp=_now_iso(),
+            )
+
         page = None
         resume_uploaded = False
         fields_filled: list[str] = []
         fields_skipped: list[str] = []
 
         try:
+            self._pw_manager.clear_blocked_navigations("indeed")
             ctx = await self._pw_manager.get_context("indeed")
             page = await ctx.new_page()
+            await self._pw_manager.prepare_page("indeed", page)
             await page.goto(job.apply_url, wait_until="domcontentloaded")
+            self._pw_manager.raise_for_blocked_navigation("indeed")
             await random_delay(1.0, 2.0)
-
-            # Redirect detection: Indeed sometimes bounces straight to external ATS
-            if "indeed.com" not in page.url:
-                if page and not page.is_closed():
-                    await page.close()
-                return SubmissionResult(
-                    job_id=job_id,
-                    company=job.company,
-                    role=job.role,
-                    adapter=self.name,
-                    status="manual_required",
-                    resume_uploaded=False,
-                    cover_letter_uploaded=False,
-                    error=f"Indeed redirected to external ATS: {page.url}",
-                    duration_seconds=time.monotonic() - start,
-                    timestamp=_now_iso(),
-                )
+            require_trusted_platform_url("indeed", page.url)
 
             # Click Apply button
             apply_clicked = False
@@ -167,28 +198,15 @@ class IndeedAdapter(BaseAdapter):
                 raise RuntimeError("Could not find Apply button on Indeed listing page")
 
             await random_delay(1.0, 2.0)
-
-            # Second redirect check after clicking Apply
-            if "indeed.com" not in page.url:
-                if page and not page.is_closed():
-                    await page.close()
-                return SubmissionResult(
-                    job_id=job_id,
-                    company=job.company,
-                    role=job.role,
-                    adapter=self.name,
-                    status="manual_required",
-                    resume_uploaded=False,
-                    cover_letter_uploaded=False,
-                    error=f"Indeed redirected to external ATS: {page.url}",
-                    duration_seconds=time.monotonic() - start,
-                    timestamp=_now_iso(),
-                )
+            self._pw_manager.raise_for_blocked_navigation("indeed")
+            require_trusted_platform_url("indeed", page.url)
 
             # Process multi-step application form
             max_steps = 10
             for step in range(max_steps):
                 await random_delay(0.5, 1.0)
+                self._pw_manager.raise_for_blocked_navigation("indeed")
+                require_trusted_platform_url("indeed", page.url)
 
                 # Check for resume upload opportunity
                 resume_input = page.locator('input[type="file"]')
@@ -325,6 +343,8 @@ class IndeedAdapter(BaseAdapter):
                         logger.warning("auto-submitting Indeed application", company=job.company, role=job.role)
                         await submit_btn.first.click()
                         await random_delay(2.0, 3.0)
+                        self._pw_manager.raise_for_blocked_navigation("indeed")
+                        require_trusted_platform_url("indeed", page.url)
 
                         # Wait for confirmation
                         confirmation = page.locator(
@@ -357,6 +377,7 @@ class IndeedAdapter(BaseAdapter):
                 elif await next_btn.count() > 0:
                     await next_btn.first.click()
                     await random_delay(1.0, 2.0)
+                    self._pw_manager.raise_for_blocked_navigation("indeed")
                 else:
                     logger.warning("no navigation button found at step", step=step)
                     break
@@ -381,7 +402,69 @@ class IndeedAdapter(BaseAdapter):
                 timestamp=_now_iso(),
             )
 
+        except PlatformSessionExpiredError:
+            self._pw_manager.mark_session_unverified("indeed")
+            if page and not page.is_closed():
+                await page.close()
+            return SubmissionResult(
+                job_id=job_id,
+                company=job.company,
+                role=job.role,
+                adapter=self.name,
+                status="manual_required",
+                resume_uploaded=resume_uploaded,
+                cover_letter_uploaded=False,
+                fields_filled=fields_filled,
+                fields_skipped=fields_skipped,
+                error=(
+                    "Indeed session expired. Verify it again via "
+                    "Settings > Platforms."
+                ),
+                duration_seconds=time.monotonic() - start,
+                timestamp=_now_iso(),
+            )
+        except UntrustedPlatformUrlError as exc:
+            if page and not page.is_closed():
+                await page.close()
+            return SubmissionResult(
+                job_id=job_id,
+                company=job.company,
+                role=job.role,
+                adapter=self.name,
+                status="manual_required",
+                resume_uploaded=resume_uploaded,
+                cover_letter_uploaded=False,
+                fields_filled=fields_filled,
+                fields_skipped=fields_skipped,
+                error=(
+                    "Indeed left its trusted HTTPS origin. Complete the "
+                    f"external handoff manually: {exc.url}"
+                ),
+                duration_seconds=time.monotonic() - start,
+                timestamp=_now_iso(),
+            )
         except Exception as exc:
+            blocked = self._pw_manager.take_blocked_navigation("indeed")
+            if isinstance(blocked, BlockedNavigation):
+                if page and not page.is_closed():
+                    await page.close()
+                return SubmissionResult(
+                    job_id=job_id,
+                    company=job.company,
+                    role=job.role,
+                    adapter=self.name,
+                    status="manual_required",
+                    resume_uploaded=resume_uploaded,
+                    cover_letter_uploaded=False,
+                    fields_filled=fields_filled,
+                    fields_skipped=fields_skipped,
+                    error=(
+                        "Indeed blocked an untrusted top-level navigation. "
+                        f"Complete the external handoff manually: {blocked.display_url}"
+                    ),
+                    duration_seconds=time.monotonic() - start,
+                    timestamp=_now_iso(),
+                )
             logger.error("indeed submission failed", error=str(exc), company=job.company, role=job.role)
             if page and not page.is_closed():
                 try:

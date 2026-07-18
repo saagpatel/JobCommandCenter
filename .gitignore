@@ -32,6 +32,8 @@ sidecar/.venv/
 sidecar/dist/
 sidecar/build/
 sidecar/*.egg-info/
+!sidecar/uv.lock
+src-tauri/binaries/
 __pycache__/
 *.pyc
 

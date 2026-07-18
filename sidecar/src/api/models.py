@@ -26,6 +26,7 @@ class ApplicantProfile(BaseModel):
 
 
 class JobListing(BaseModel):
+    id: str | None = None
     company: str
     role: str
     ats: Literal["ashby", "greenhouse", "linkedin", "indeed", "gem", "workday", "generic"]
@@ -83,7 +84,14 @@ class PlatformLoginResponse(BaseModel):
 
 class PlatformSessionStatus(BaseModel):
     platform: str
-    has_session: bool
+    status: Literal["not_connected", "verification_required", "authenticated"]
+    message: str
+
+
+class BrowserReadinessResponse(BaseModel):
+    status: Literal["ready", "unavailable", "error"]
+    source: Literal["playwright", "system_chrome"] | None = None
+    message: str
 
 
 class FieldMappingRequest(BaseModel):

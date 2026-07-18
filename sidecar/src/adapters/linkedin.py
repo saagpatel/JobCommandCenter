@@ -9,9 +9,14 @@ from src.adapters.base import BaseAdapter
 from src.api.models import ApplicantProfile, JobListing, SubmissionResult
 from src.services.claude_ai import ClaudeAIService
 from src.services.playwright_base import (
+    BlockedNavigation,
+    PlatformSessionExpiredError,
     PlaywrightManager,
+    UntrustedPlatformUrlError,
     fill_field,
+    is_trusted_platform_url,
     random_delay,
+    require_trusted_platform_url,
     screenshot_on_failure,
     select_option,
     upload_file,
@@ -50,8 +55,10 @@ class LinkedInAdapter(BaseAdapter):
         if job.ats != "linkedin":
             errors.append(f"Expected ats='linkedin', got '{job.ats}'")
 
-        if "linkedin.com" not in (job.apply_url or ""):
-            errors.append("apply_url does not contain linkedin.com")
+        if not is_trusted_platform_url("linkedin", job.apply_url or ""):
+            errors.append(
+                "apply_url must use a trusted HTTPS LinkedIn origin (linkedin.com)"
+            )
 
         resume = job.resume_path
         if resume:
@@ -61,8 +68,11 @@ class LinkedInAdapter(BaseAdapter):
         else:
             errors.append("No resume_path provided")
 
-        if self._pw_manager and not self._pw_manager.session_exists("linkedin"):
-            errors.append("No LinkedIn session found. Please log in first via Settings > Platforms.")
+        if self._pw_manager and not self._pw_manager.session_authenticated("linkedin"):
+            errors.append(
+                "LinkedIn session is not verified. Verify it first via "
+                "Settings > Platforms."
+            )
 
         return errors
 
@@ -120,16 +130,54 @@ class LinkedInAdapter(BaseAdapter):
                 timestamp=_now_iso(),
             )
 
+        if not self._pw_manager.session_authenticated("linkedin"):
+            return SubmissionResult(
+                job_id=job_id,
+                company=job.company,
+                role=job.role,
+                adapter=self.name,
+                status="failed",
+                resume_uploaded=False,
+                cover_letter_uploaded=False,
+                error=(
+                    "LinkedIn session is not verified. Verify it first via "
+                    "Settings > Platforms."
+                ),
+                duration_seconds=time.monotonic() - start,
+                timestamp=_now_iso(),
+            )
+
+        if not is_trusted_platform_url("linkedin", job.apply_url):
+            return SubmissionResult(
+                job_id=job_id,
+                company=job.company,
+                role=job.role,
+                adapter=self.name,
+                status="failed",
+                resume_uploaded=False,
+                cover_letter_uploaded=False,
+                error=(
+                    "apply_url must use a trusted HTTPS LinkedIn origin "
+                    "(linkedin.com)."
+                ),
+                duration_seconds=time.monotonic() - start,
+                timestamp=_now_iso(),
+            )
+
         page = None
         resume_uploaded = False
         fields_filled: list[str] = []
         fields_skipped: list[str] = []
 
         try:
+            self._pw_manager.clear_blocked_navigations("linkedin")
             ctx = await self._pw_manager.get_context("linkedin")
             page = await ctx.new_page()
+            await self._pw_manager.prepare_page("linkedin", page)
             await page.goto(job.apply_url, wait_until="domcontentloaded")
+            self._pw_manager.raise_for_blocked_navigation("linkedin")
             await random_delay(1.0, 2.0)
+            require_trusted_platform_url("linkedin", page.url)
 
             # Click Easy Apply button
             easy_apply_btn = page.locator('button:has-text("Easy Apply")')
@@ -137,6 +185,8 @@ class LinkedInAdapter(BaseAdapter):
             await random_delay(0.3, 0.8)
             await easy_apply_btn.click()
             await random_delay(1.0, 2.0)
+            self._pw_manager.raise_for_blocked_navigation("linkedin")
+            require_trusted_platform_url("linkedin", page.url)
 
             # Process multi-step modal
             modal = page.locator('div[role="dialog"]')
@@ -145,6 +195,8 @@ class LinkedInAdapter(BaseAdapter):
             max_steps = 10
             for step in range(max_steps):
                 await random_delay(0.5, 1.0)
+                self._pw_manager.raise_for_blocked_navigation("linkedin")
+                require_trusted_platform_url("linkedin", page.url)
 
                 # Check for resume upload opportunity
                 resume_input = page.locator('input[type="file"]')
@@ -277,6 +329,8 @@ class LinkedInAdapter(BaseAdapter):
                         logger.warning("auto-submitting LinkedIn application", company=job.company, role=job.role)
                         await submit_btn.first.click()
                         await random_delay(2.0, 3.0)
+                        self._pw_manager.raise_for_blocked_navigation("linkedin")
+                        require_trusted_platform_url("linkedin", page.url)
 
                         # Wait for confirmation
                         confirmation = page.locator('h2:has-text("submitted"), div:has-text("Application submitted")')
@@ -307,9 +361,11 @@ class LinkedInAdapter(BaseAdapter):
                 elif await review_btn.count() > 0:
                     await review_btn.first.click()
                     await random_delay(1.0, 2.0)
+                    self._pw_manager.raise_for_blocked_navigation("linkedin")
                 elif await next_btn.count() > 0:
                     await next_btn.first.click()
                     await random_delay(1.0, 2.0)
+                    self._pw_manager.raise_for_blocked_navigation("linkedin")
                 else:
                     # No navigation button found — maybe we're done or stuck
                     logger.warning("no navigation button found at step", step=step)
@@ -335,7 +391,69 @@ class LinkedInAdapter(BaseAdapter):
                 timestamp=_now_iso(),
             )
 
+        except PlatformSessionExpiredError:
+            self._pw_manager.mark_session_unverified("linkedin")
+            if page and not page.is_closed():
+                await page.close()
+            return SubmissionResult(
+                job_id=job_id,
+                company=job.company,
+                role=job.role,
+                adapter=self.name,
+                status="manual_required",
+                resume_uploaded=resume_uploaded,
+                cover_letter_uploaded=False,
+                fields_filled=fields_filled,
+                fields_skipped=fields_skipped,
+                error=(
+                    "LinkedIn session expired. Verify it again via "
+                    "Settings > Platforms."
+                ),
+                duration_seconds=time.monotonic() - start,
+                timestamp=_now_iso(),
+            )
+        except UntrustedPlatformUrlError as exc:
+            if page and not page.is_closed():
+                await page.close()
+            return SubmissionResult(
+                job_id=job_id,
+                company=job.company,
+                role=job.role,
+                adapter=self.name,
+                status="manual_required",
+                resume_uploaded=resume_uploaded,
+                cover_letter_uploaded=False,
+                fields_filled=fields_filled,
+                fields_skipped=fields_skipped,
+                error=(
+                    "LinkedIn left its trusted HTTPS origin. Complete the "
+                    f"external handoff manually: {exc.url}"
+                ),
+                duration_seconds=time.monotonic() - start,
+                timestamp=_now_iso(),
+            )
         except Exception as exc:
+            blocked = self._pw_manager.take_blocked_navigation("linkedin")
+            if isinstance(blocked, BlockedNavigation):
+                if page and not page.is_closed():
+                    await page.close()
+                return SubmissionResult(
+                    job_id=job_id,
+                    company=job.company,
+                    role=job.role,
+                    adapter=self.name,
+                    status="manual_required",
+                    resume_uploaded=resume_uploaded,
+                    cover_letter_uploaded=False,
+                    fields_filled=fields_filled,
+                    fields_skipped=fields_skipped,
+                    error=(
+                        "LinkedIn blocked an untrusted top-level navigation. "
+                        f"Complete the external handoff manually: {blocked.display_url}"
+                    ),
+                    duration_seconds=time.monotonic() - start,
+                    timestamp=_now_iso(),
+                )
             logger.error("linkedin submission failed", error=str(exc), company=job.company, role=job.role)
             if page and not page.is_closed():
                 try:

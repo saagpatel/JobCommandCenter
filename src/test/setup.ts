@@ -1,6 +1,39 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 
+class MockStorage implements Storage {
+  private readonly values = new Map<string, string>()
+
+  get length() {
+    return this.values.size
+  }
+
+  clear() {
+    this.values.clear()
+  }
+
+  getItem(key: string) {
+    return this.values.get(key) ?? null
+  }
+
+  key(index: number) {
+    return [...this.values.keys()][index] ?? null
+  }
+
+  removeItem(key: string) {
+    this.values.delete(key)
+  }
+
+  setItem(key: string, value: string) {
+    this.values.set(key, String(value))
+  }
+}
+
+Object.defineProperty(window, 'localStorage', {
+  configurable: true,
+  value: new MockStorage(),
+})
+
 // Mock ResizeObserver for components that use @radix-ui/react-scroll-area
 class MockResizeObserver {
   observe = vi.fn()
@@ -54,6 +87,7 @@ vi.mock('@/lib/tauri-bindings', () => ({
     cleanupOldRecoveryFiles: vi
       .fn()
       .mockResolvedValue({ status: 'ok', data: 0 }),
+    getSubmitToken: vi.fn().mockResolvedValue('test-submit-token'),
     listJobs: vi.fn().mockResolvedValue({ status: 'ok', data: [] }),
     getJob: vi.fn().mockResolvedValue({ status: 'ok', data: null }),
     createJob: vi.fn().mockResolvedValue({ status: 'ok', data: {} }),
@@ -124,6 +158,18 @@ vi.mock('@/lib/tauri-bindings', () => ({
     getSubmissionsByAdapter: vi
       .fn()
       .mockResolvedValue({ status: 'ok', data: [] }),
+    recordSubmissionReceipt: vi
+      .fn()
+      .mockResolvedValue({ status: 'ok', data: {} }),
+    listUnresolvedSubmissionReceipts: vi
+      .fn()
+      .mockResolvedValue({ status: 'ok', data: [] }),
+    listSubmissionReceiptsForJob: vi
+      .fn()
+      .mockResolvedValue({ status: 'ok', data: [] }),
+    resolveSubmissionReceipts: vi
+      .fn()
+      .mockResolvedValue({ status: 'ok', data: true }),
     getTierComparison: vi.fn().mockResolvedValue({
       status: 'ok',
       data: {

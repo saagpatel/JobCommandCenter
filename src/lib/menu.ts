@@ -15,57 +15,68 @@ import i18n from '@/i18n/config'
 import { useUIStore } from '@/store/ui-store'
 import { logger } from '@/lib/logger'
 import { notifications } from '@/lib/notifications'
+import { updaterEnabled } from '@/lib/updater-config'
 
-const APP_NAME = 'Tauri Template'
+const APP_NAME = 'Job Command Center'
 
 /**
  * Build and set the application menu with translated labels.
  */
-export async function buildAppMenu(): Promise<Menu> {
+export async function buildAppMenu(
+  updaterActive = updaterEnabled
+): Promise<Menu> {
   const t = i18n.t.bind(i18n)
 
   try {
-    // Build the main application submenu (appears as app name on macOS)
-    const appSubmenu = await Submenu.new({
-      text: APP_NAME,
-      items: [
-        await MenuItem.new({
-          id: 'about',
-          text: t('menu.about', { appName: APP_NAME }),
-          action: handleAbout,
-        }),
-        await PredefinedMenuItem.new({ item: 'Separator' }),
+    const appItems = [
+      await MenuItem.new({
+        id: 'about',
+        text: t('menu.about', { appName: APP_NAME }),
+        action: handleAbout,
+      }),
+      await PredefinedMenuItem.new({ item: 'Separator' }),
+    ]
+    if (updaterActive) {
+      appItems.push(
         await MenuItem.new({
           id: 'check-updates',
           text: t('menu.checkForUpdates'),
           action: handleCheckForUpdates,
         }),
-        await PredefinedMenuItem.new({ item: 'Separator' }),
-        await MenuItem.new({
-          id: 'preferences',
-          text: t('menu.preferences'),
-          accelerator: 'CmdOrCtrl+,',
-          action: handleOpenPreferences,
-        }),
-        await PredefinedMenuItem.new({ item: 'Separator' }),
-        await PredefinedMenuItem.new({
-          item: 'Hide',
-          text: t('menu.hide', { appName: APP_NAME }),
-        }),
-        await PredefinedMenuItem.new({
-          item: 'HideOthers',
-          text: t('menu.hideOthers'),
-        }),
-        await PredefinedMenuItem.new({
-          item: 'ShowAll',
-          text: t('menu.showAll'),
-        }),
-        await PredefinedMenuItem.new({ item: 'Separator' }),
-        await PredefinedMenuItem.new({
-          item: 'Quit',
-          text: t('menu.quit', { appName: APP_NAME }),
-        }),
-      ],
+        await PredefinedMenuItem.new({ item: 'Separator' })
+      )
+    }
+    appItems.push(
+      await MenuItem.new({
+        id: 'preferences',
+        text: t('menu.preferences'),
+        accelerator: 'CmdOrCtrl+,',
+        action: handleOpenPreferences,
+      }),
+      await PredefinedMenuItem.new({ item: 'Separator' }),
+      await PredefinedMenuItem.new({
+        item: 'Hide',
+        text: t('menu.hide', { appName: APP_NAME }),
+      }),
+      await PredefinedMenuItem.new({
+        item: 'HideOthers',
+        text: t('menu.hideOthers'),
+      }),
+      await PredefinedMenuItem.new({
+        item: 'ShowAll',
+        text: t('menu.showAll'),
+      }),
+      await PredefinedMenuItem.new({ item: 'Separator' }),
+      await PredefinedMenuItem.new({
+        item: 'Quit',
+        text: t('menu.quit', { appName: APP_NAME }),
+      })
+    )
+
+    // Build the main application submenu (appears as app name on macOS)
+    const appSubmenu = await Submenu.new({
+      text: APP_NAME,
+      items: appItems,
     })
 
     // Build the View submenu

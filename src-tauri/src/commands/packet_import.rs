@@ -267,10 +267,34 @@ async fn insert_job_from_packet(
     verified: &VerifiedPacket,
     apply_url: &str,
     ats: &str,
-) -> Result<String, String> {
+) -> Result<(String, bool), String> {
     let id = uuid::Uuid::now_v7().to_string();
     let custom_fields = serde_json::to_string(&verified.custom_fields)
         .map_err(|e| format!("Failed to serialize packet custom fields: {e}"))?;
+    let mut transaction = pool
+        .begin()
+        .await
+        .map_err(|e| format!("Failed to begin packet import: {e}"))?;
+    let claim =
+        sqlx::query("INSERT OR IGNORE INTO packet_imports (packet_id, job_id) VALUES (?, ?)")
+            .bind(&verified.packet_id)
+            .bind(&id)
+            .execute(&mut *transaction)
+            .await
+            .map_err(|e| format!("Failed to reserve packet import: {e}"))?;
+    if claim.rows_affected() == 0 {
+        let existing_id: String =
+            sqlx::query_scalar("SELECT job_id FROM packet_imports WHERE packet_id = ?")
+                .bind(&verified.packet_id)
+                .fetch_one(&mut *transaction)
+                .await
+                .map_err(|e| format!("Failed to load existing packet import: {e}"))?;
+        transaction
+            .commit()
+            .await
+            .map_err(|e| format!("Failed to finish duplicate packet lookup: {e}"))?;
+        return Ok((existing_id, true));
+    }
     sqlx::query(
         "INSERT INTO jobs (id, company, role, ats, apply_url, source, resume_path, cover_letter_path, custom_fields, source_packet_id, source_packet_version, truth_status) \
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -287,13 +311,17 @@ async fn insert_job_from_packet(
     .bind(&verified.packet_id)
     .bind(&verified.schema_version)
     .bind(&verified.truth_status)
-    .execute(pool)
+    .execute(&mut *transaction)
     .await
     .map_err(|e| {
         log::error!("Failed to insert imported packet job: {e}");
         format!("Failed to import packet: {e}")
     })?;
-    Ok(id)
+    transaction
+        .commit()
+        .await
+        .map_err(|e| format!("Failed to commit packet import: {e}"))?;
+    Ok((id, false))
 }
 
 async fn fetch_job(pool: &SqlitePool, id: &str) -> Result<Job, String> {
@@ -330,6 +358,8 @@ pub struct ImportPacketResult {
     pub signed: bool,
     /// Signing key fingerprint, if the manifest carried a signature.
     pub public_key_id: Option<String>,
+    /// True when this packet was already present and the existing tracker job was returned.
+    pub already_imported: bool,
 }
 
 /// Verify a VAP manifest and import it as a tracked job. Never submits.
@@ -344,7 +374,8 @@ pub async fn import_packet(
         input.expected_public_key_id.as_deref(),
     )?;
     let pool = app.state::<SqlitePool>();
-    let id = insert_job_from_packet(pool.inner(), &verified, &input.apply_url, &input.ats).await?;
+    let (id, already_imported) =
+        insert_job_from_packet(pool.inner(), &verified, &input.apply_url, &input.ats).await?;
     let job = fetch_job(pool.inner(), &id).await?;
     Ok(ImportPacketResult {
         job,
@@ -353,6 +384,7 @@ pub async fn import_packet(
         stale_artifacts: verified.stale_artifacts,
         signed: verified.signed,
         public_key_id: verified.public_key_id,
+        already_imported,
     })
 }
 
@@ -438,6 +470,11 @@ mod tests {
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
         updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );";
+    const TEST_PACKET_IMPORTS_DDL: &str = "CREATE TABLE packet_imports (
+        packet_id TEXT PRIMARY KEY,
+        job_id TEXT NOT NULL UNIQUE,
+        imported_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );";
 
     async fn test_pool() -> SqlitePool {
         let pool = SqlitePoolOptions::new()
@@ -449,6 +486,10 @@ mod tests {
             .execute(&pool)
             .await
             .expect("create jobs");
+        sqlx::query(TEST_PACKET_IMPORTS_DDL)
+            .execute(&pool)
+            .await
+            .expect("create packet imports");
         pool
     }
 
@@ -558,7 +599,7 @@ mod tests {
             let verified = verify_manifest(&manifest_path, None).expect("verify");
 
             let pool = test_pool().await;
-            let id = insert_job_from_packet(
+            let (id, already_imported) = insert_job_from_packet(
                 &pool,
                 &verified,
                 "https://boards.example/apply",
@@ -566,6 +607,7 @@ mod tests {
             )
             .await
             .expect("import");
+            assert!(!already_imported);
             let job = fetch_job(&pool, &id).await.expect("fetch");
 
             assert_eq!(job.company, "Acme");
@@ -602,7 +644,7 @@ mod tests {
 
             let verified = verify_manifest(&manifest_path, None).expect("verify");
             let pool = test_pool().await;
-            let id = insert_job_from_packet(
+            let (id, already_imported) = insert_job_from_packet(
                 &pool,
                 &verified,
                 "https://boards.example/apply",
@@ -610,11 +652,52 @@ mod tests {
             )
             .await
             .expect("import");
+            assert!(!already_imported);
             let job = fetch_job(&pool, &id).await.expect("fetch");
             assert_eq!(
                 job.custom_fields.as_deref(),
                 Some(r#"{"desired_salary":"180000"}"#)
             );
+        });
+    }
+
+    #[test]
+    fn importing_the_same_packet_twice_returns_the_existing_job() {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("runtime");
+        rt.block_on(async {
+            let dir = tempfile::tempdir().expect("tmp");
+            let (manifest_path, _) = write_signed_packet(dir.path(), "resume body", true);
+            let verified = verify_manifest(&manifest_path, None).expect("verify");
+            let pool = test_pool().await;
+
+            let (first_id, first_duplicate) = insert_job_from_packet(
+                &pool,
+                &verified,
+                "https://boards.example/apply",
+                "greenhouse",
+            )
+            .await
+            .expect("first import");
+            let (second_id, second_duplicate) = insert_job_from_packet(
+                &pool,
+                &verified,
+                "https://boards.example/apply",
+                "greenhouse",
+            )
+            .await
+            .expect("second import");
+
+            assert!(!first_duplicate);
+            assert!(second_duplicate);
+            assert_eq!(second_id, first_id);
+            let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM jobs")
+                .fetch_one(&pool)
+                .await
+                .expect("count");
+            assert_eq!(count, 1);
         });
     }
 }

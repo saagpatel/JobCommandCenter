@@ -1,4 +1,4 @@
-name: 'Release Tauri Template App'
+name: 'Release Job Command Center'
 
 on:
   push:
@@ -15,7 +15,60 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
+  verify-macos-bundle:
+    name: Verify packaged first use and sidecar lifecycle
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 'lts/*'
+          cache: 'pnpm'
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.5.2
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: '0.11.16'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packaged macOS preflight
+        run: >-
+          pnpm run tauri build
+          --config src-tauri/tauri.bundle.conf.json
+          --bundles app
+          --no-sign
+          --ci
+
+      - name: Verify disposable first use and sidecar lifecycle
+        env:
+          JCC_SMOKE_REQUIRE_SIDECAR: '1'
+          JCC_SMOKE_RESTART_SIDECAR: '1'
+          JCC_SMOKE_HOLD_SECONDS: '0'
+          JCC_SMOKE_SIDECAR_WAIT_SECONDS: '40'
+        run: >-
+          scripts/smoke-disposable-release.sh
+          "$PWD/src-tauri/target/release/bundle/macos/Job Command Center.app/Contents/MacOS/job-command-center"
+
   publish-tauri:
+    needs: verify-macos-bundle
     permissions:
       contents: write
     strategy:
@@ -23,11 +76,11 @@ jobs:
       matrix:
         include:
           - platform: 'macos-latest'
-            args: '--bundles app,dmg'
+            args: '--config src-tauri/tauri.bundle.conf.json --bundles app,dmg'
           - platform: 'windows-latest'
-            args: '--bundles msi'
+            args: '--config src-tauri/tauri.bundle.conf.json --bundles msi'
           - platform: 'ubuntu-22.04'
-            args: '--bundles appimage'
+            args: '--config src-tauri/tauri.bundle.conf.json --bundles appimage'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -42,6 +95,11 @@ jobs:
       - uses: pnpm/action-setup@v6
         with:
           version: 11.5.2
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: '0.11.16'
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -68,17 +126,14 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.ref_name || inputs.version }}
-          releaseName: 'Tauri Template App ${{ github.ref_name || inputs.version }}'
+          releaseName: 'Job Command Center ${{ github.ref_name || inputs.version }}'
           releaseBody: |
-            ## Tauri Template App ${{ github.ref_name || inputs.version }}
+            ## Job Command Center ${{ github.ref_name || inputs.version }}
 
             ### Installation Instructions
             - **macOS**: Download the `.dmg` file and drag to Applications folder
             - **Windows**: Download the `.msi` file and run the installer
             - **Linux**: Download the `.AppImage` file, make it executable (`chmod +x`), and run
-
-            ### Auto-Updates
-            Existing users will receive automatic update notifications.
 
             **Full Changelog**: https://github.com/${{ github.repository }}/commits/${{ github.ref_name || inputs.version }}
           releaseDraft: true

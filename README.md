@@ -41,7 +41,7 @@ A Tauri 2 desktop hub for an automated job-search pipeline. Tracks job listings,
 - **Python sidecar** — FastAPI on `127.0.0.1:9876`, started and health-monitored by the Rust backend. Hosts the submission engine, Playwright sessions, Gmail OAuth, and Anthropic SDK.
 - **Credentials vault** — ATS credentials and API keys stored in macOS Keychain.
 - **Profile management** — Contact info and resume path used to pre-fill submission forms.
-- **Command Palette** (`Cmd+K`), **Quick Pane** (`Cmd+Shift+.`), theme, preferences, native menus, auto-updates.
+- **Command Palette** (`Cmd+K`), **Quick Pane** (`Cmd+Shift+.`), theme, preferences, native menus, and an opt-in updater flow.
 
 ## Getting Started
 

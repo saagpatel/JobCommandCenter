@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  type QueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type {
   CreateJobInput,
@@ -9,11 +14,33 @@ import type {
 } from '@/lib/bindings'
 import { logger } from '@/lib/logger'
 import { commands, unwrapResult } from '@/lib/tauri-bindings'
+import { analyticsQueryKeys } from '@/services/analytics'
+import { followupQueryKeys } from '@/services/followups'
+import { noteQueryKeys } from '@/services/notes'
+import { submissionQueryKeys } from '@/services/submissions'
 
 export const jobsQueryKeys = {
   all: ['jobs'] as const,
   list: (status?: string) => ['jobs', 'list', { status }] as const,
   detail: (id: string) => ['jobs', 'detail', id] as const,
+}
+
+async function invalidateJobLifecycleQueries(
+  queryClient: QueryClient,
+  includeSubmissions = false
+) {
+  const invalidations = [
+    queryClient.invalidateQueries({ queryKey: jobsQueryKeys.all }),
+    queryClient.invalidateQueries({ queryKey: followupQueryKeys.all }),
+    queryClient.invalidateQueries({ queryKey: noteQueryKeys.all }),
+    queryClient.invalidateQueries({ queryKey: analyticsQueryKeys.all }),
+  ]
+  if (includeSubmissions) {
+    invalidations.push(
+      queryClient.invalidateQueries({ queryKey: submissionQueryKeys.all })
+    )
+  }
+  await Promise.all(invalidations)
 }
 
 export function useJobs(status?: string) {
@@ -48,8 +75,8 @@ export function useCreateJob() {
       const result = await commands.createJob(input)
       return unwrapResult(result)
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: jobsQueryKeys.all })
+    onSuccess: async () => {
+      await invalidateJobLifecycleQueries(queryClient)
       toast.success('Job added')
     },
     onError: (error: unknown) => {
@@ -71,8 +98,14 @@ export function useImportPacket() {
       const result = await commands.importPacket(input)
       return unwrapResult(result)
     },
-    onSuccess: result => {
-      queryClient.invalidateQueries({ queryKey: jobsQueryKeys.all })
+    onSuccess: async result => {
+      await invalidateJobLifecycleQueries(queryClient)
+      if (result.already_imported) {
+        toast.info('Packet already imported', {
+          description: `Using the existing tracker job for ${result.job.company} — ${result.job.role}`,
+        })
+        return
+      }
       if (result.truth_status === 'verified') {
         toast.success('Verified packet imported', {
           description: `${result.job.company} — ${result.job.role}`,
@@ -145,8 +178,8 @@ export function useUpdateJob() {
         description: error instanceof Error ? error.message : String(error),
       })
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: jobsQueryKeys.all })
+    onSettled: async () => {
+      await invalidateJobLifecycleQueries(queryClient)
     },
   })
 }
@@ -159,8 +192,8 @@ export function useDeleteJob() {
       const result = await commands.deleteJob(id)
       return unwrapResult(result)
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: jobsQueryKeys.all })
+    onSuccess: async () => {
+      await invalidateJobLifecycleQueries(queryClient, true)
       toast.success('Job deleted')
     },
     onError: (error: unknown) => {

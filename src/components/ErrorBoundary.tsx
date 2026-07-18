@@ -101,8 +101,8 @@ export class ErrorBoundary extends Component<Props, State> {
                 Something went wrong
               </h1>
               <p className="text-muted-foreground mb-6">
-                The application encountered an unexpected error. Your data has
-                been saved automatically.
+                The application encountered an unexpected error. Saved records
+                remain on disk, but unsaved form changes may be lost.
               </p>
             </div>
 

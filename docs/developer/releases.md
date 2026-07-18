@@ -51,8 +51,75 @@ Add these secrets (Settings → Secrets and variables → Actions):
 - Set `bundle.createUpdaterArtifacts` to `true`
 - Set `plugins.updater.active` to `true`
 - Add the generated public key to `plugins.updater.pubkey`
+- Set `VITE_UPDATER_ACTIVE=true` for the release build. Startup update checks
+  and the manual menu item are fail-closed without this explicit frontend build
+  opt-in. Native plugin registration separately requires
+  `plugins.updater.active=true`.
 
 ## Release Process
+
+### Bundled Python Sidecar
+
+Release packages include a frozen `jcc-sidecar` executable next to the Tauri
+application executable. The build is driven by `sidecar/uv.lock` and the pinned
+PyInstaller dependency in `sidecar/pyproject.toml`.
+
+```bash
+# Build only the host-specific sidecar
+pnpm run build:sidecar
+
+# Build the app and require the bundled sidecar
+pnpm run tauri:build
+```
+
+`pnpm run tauri:build` uses `src-tauri/tauri.bundle.conf.json`; normal Rust
+builds and tests intentionally do not require a prebuilt sidecar. Set
+`JCC_SIDECAR_BUILD_ROOT` and `JCC_SIDECAR_OUTPUT_DIR` to redirect generated
+files for isolated verification. The sidecar must be built separately on every
+target platform because PyInstaller does not cross-compile executables.
+
+The frozen sidecar includes Playwright's driver, not a downloaded Chromium
+browser. At runtime JCC prefers a Playwright-managed Chromium executable when
+one exists and otherwise uses an installed Google Chrome executable with the
+JCC profile directory. If neither exists, Settings disables platform login,
+explains the missing prerequisite, and offers a no-download readiness retry.
+A fully self-contained release must separately acquire, bundle, sign, and
+validate a browser payload.
+
+### Disposable release smoke
+
+Run a built app without using the installed JCC data directory:
+
+```bash
+scripts/smoke-disposable-release.sh \
+  "$PWD/src-tauri/target/release/bundle/macos/Job Command Center.app/Contents/MacOS/job-command-center"
+```
+
+The harness redirects `HOME`, blocks external HTTP(S) through a closed local
+proxy, verifies the disposable database, and fails if any installed `jcc.db*`
+fingerprint changes. It retains the disposable home for inspection.
+
+For packaged sidecar lifecycle coverage, require a healthy bundled listener,
+force one bounded restart, and verify that app shutdown leaves no listener:
+
+```bash
+JCC_SMOKE_REQUIRE_SIDECAR=1 \
+JCC_SMOKE_RESTART_SIDECAR=1 \
+JCC_SMOKE_HOLD_SECONDS=0 \
+scripts/smoke-disposable-release.sh \
+  "$PWD/src-tauri/target/release/bundle/macos/Job Command Center.app/Contents/MacOS/job-command-center"
+```
+
+The release workflow runs this stronger macOS preflight before any platform is
+allowed to create or update the draft release.
+
+Browser profile files are not treated as proof of an authenticated platform
+session. After a successful visible login, JCC writes a non-secret verification
+receipt beside the profile and considers the session authenticated only for the
+current app run. After restart, Settings shows **Verification required** and
+the operator must revalidate the saved profile before LinkedIn or Indeed
+submissions are enabled. Indeed verification requires visible account UI on a
+non-login Indeed URL; merely reaching an `indeed.com` page is insufficient.
 
 ### Simple Method
 

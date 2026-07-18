@@ -164,6 +164,40 @@ pub struct UpdateJobInput {
 }
 
 // ============================================================================
+// Submission receipts
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type, FromRow)]
+pub struct SubmissionReceipt {
+    pub id: String,
+    pub job_id: String,
+    pub adapter: String,
+    pub status: String,
+    pub resume_uploaded: bool,
+    pub cover_letter_uploaded: bool,
+    pub fields_filled: String,
+    pub fields_skipped: String,
+    pub error: Option<String>,
+    pub duration_seconds: f64,
+    pub created_at: String,
+    pub resolved_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct RecordSubmissionReceiptInput {
+    pub job_id: String,
+    pub adapter: String,
+    pub status: String,
+    pub resume_uploaded: bool,
+    pub cover_letter_uploaded: bool,
+    pub fields_filled: Vec<String>,
+    pub fields_skipped: Vec<String>,
+    pub error: Option<String>,
+    pub duration_seconds: f64,
+    pub timestamp: String,
+}
+
+// ============================================================================
 // Profile
 // ============================================================================
 
@@ -217,6 +251,16 @@ pub struct Followup {
     pub created_at: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Type, FromRow)]
+pub struct FollowupEvent {
+    pub id: String,
+    pub followup_id: String,
+    pub from_status: Option<String>,
+    pub to_status: String,
+    pub reason: String,
+    pub occurred_at: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct CreateFollowupInput {
     pub job_id: String,
@@ -233,6 +277,7 @@ pub struct UpdateFollowupInput {
     pub sent_at: Option<String>,
     pub gmail_message_id: Option<String>,
     pub recipient_email: Option<String>,
+    pub transition_reason: Option<String>,
 }
 
 // ============================================================================

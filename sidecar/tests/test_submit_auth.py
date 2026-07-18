@@ -88,3 +88,45 @@ def test_route_refuses_live_batch_with_wrong_token() -> None:
         headers={"X-Submit-Token": "guessed-wrong"},
     )
     assert resp.status_code == 403
+
+
+def test_route_binds_adapter_result_to_the_exact_local_job_id() -> None:
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from src.api.models import SubmissionResult
+    from src.api.routes import router
+
+    class Adapter:
+        async def submit(self, job, profile, dry_run):  # type: ignore[no-untyped-def]
+            return SubmissionResult(
+                job_id="adapter-generated-id",
+                company=job.company,
+                role=job.role,
+                adapter=job.ats,
+                status="dry_run",
+                resume_uploaded=False,
+                cover_letter_uploaded=False,
+                duration_seconds=0,
+                timestamp="2026-07-17T00:00:00Z",
+            )
+
+    class Registry:
+        def get(self, _name: str) -> Adapter:
+            return Adapter()
+
+    app = FastAPI()
+    app.state.submit_token = None
+    app.state.registry = Registry()
+    app.include_router(router)
+    response = TestClient(app).post(
+        "/submit",
+        json={
+            "job": {**_JOB, "id": "local-job-42"},
+            "profile": _PROFILE,
+            "dry_run": True,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["job_id"] == "local-job-42"

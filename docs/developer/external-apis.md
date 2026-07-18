@@ -199,6 +199,48 @@ const { data } = useQuery({
 })
 ```
 
+## Browser Navigation Trust
+
+LinkedIn and Indeed Playwright adapters treat every job URL and post-click
+navigation as an external trust boundary. `playwright_base.py` classifies URLs
+by parsed origin rather than text containment:
+
+- only HTTPS vendor domains and their real subdomains are trusted;
+- embedded credentials and nonstandard ports are rejected;
+- login and checkpoint paths revoke current session verification;
+- navigation outside the vendor origin stops automation and returns a manual
+  handoff result.
+
+Adapters must enforce this classification inside `submit()` before
+`page.goto()`. Validation helpers alone are insufficient because sidecar
+submission routes call adapter submission directly.
+
+Each persistent LinkedIn and Indeed context blocks service workers and installs
+two top-level navigation controls:
+
+- A Playwright route guard aborts an external or invalid initial main-frame
+  request before dispatch. New-window and popup requests always stop for manual
+  handoff because Playwright exposes their first request before a response
+  guard can be attached safely.
+- A Chromium CDP response-stage guard inspects every main-document HTTP
+  redirect before Chromium issues the next request. External or invalid
+  `Location` targets are aborted; trusted platform redirect chains continue.
+
+Subresources and iframe navigation remain available so vendor pages can load
+normally. Guarded pages must attach the response control before their first
+navigation and fail closed if that preparation is unavailable. Block receipts
+retain only the scheme, host, port, and path; credentials, queries, and
+fragments are never included in logs or manual-handoff messages.
+
+The opt-in local integration proof uses isolated Chrome state and loopback
+servers only:
+
+```bash
+JCC_RUN_LOCAL_BROWSER_INTEGRATION=1 \
+JCC_SYSTEM_CHROME_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+python -m pytest -q tests/test_playwright_navigation_integration.py
+```
+
 ## Offline Handling
 
 For apps that need to work offline, cache API responses to SQLite:

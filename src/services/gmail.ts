@@ -83,8 +83,10 @@ export function useGmailSend() {
       }),
     onError: (error: unknown) => {
       logger.error('Gmail send failed', { error })
-      toast.error('Failed to send email', {
-        description: error instanceof Error ? error.message : String(error),
+      toast.error('Email outcome unconfirmed — do not resend', {
+        description: `Check Gmail Sent before resolving this follow-up. ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       })
     },
   })

@@ -7,6 +7,7 @@ import { initializeLanguage } from './i18n/language-init'
 import { logger } from './lib/logger'
 import { cleanupOldFiles } from './lib/recovery'
 import { commands } from './lib/tauri-bindings'
+import { updaterEnabled } from './lib/updater-config'
 import { useSidecarEvents } from './hooks/use-sidecar-events'
 import './App.css'
 import { MainWindow } from './components/layout/MainWindow'
@@ -56,7 +57,8 @@ function App() {
       mode: import.meta.env.MODE,
     })
 
-    // Auto-updater logic - check for updates 5 seconds after app loads
+    // Automatic update checks are a release-time opt-in. This keeps local and
+    // unsigned builds from contacting the configured update endpoint.
     const checkForUpdates = async () => {
       try {
         const update = await check()
@@ -107,9 +109,12 @@ function App() {
       }
     }
 
-    // Check for updates 5 seconds after app loads
-    const updateTimer = setTimeout(checkForUpdates, 5000)
-    return () => clearTimeout(updateTimer)
+    const updateTimer = updaterEnabled
+      ? setTimeout(checkForUpdates, 5000)
+      : undefined
+    return () => {
+      if (updateTimer !== undefined) clearTimeout(updateTimer)
+    }
   }, [])
 
   return (
