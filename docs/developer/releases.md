@@ -170,6 +170,19 @@ All three files must have matching versions:
 
 ## Auto-Update System
 
+### Prerequisites
+
+`VITE_UPDATER_ACTIVE=true` enables the frontend update checks only; it is not
+sufficient to enable working auto-updates. The checked-in
+`src-tauri/tauri.conf.json` has `plugins.updater.active: false`, an empty
+`plugins.updater.pubkey`, and `bundle.createUpdaterArtifacts: false`.
+
+Follow [Initial Setup](#initial-setup) to enable the backend updater plugin with
+`plugins.updater.active=true`, configure the generated public signing key in
+`plugins.updater.pubkey`, provide the private signing key to the release build,
+and set `bundle.createUpdaterArtifacts=true` to generate signed updater artifacts.
+Build the frontend with `VITE_UPDATER_ACTIVE=true` as well.
+
 ### Behavior
 
 - Checks for updates 5 seconds after app launch only with `VITE_UPDATER_ACTIVE=true`

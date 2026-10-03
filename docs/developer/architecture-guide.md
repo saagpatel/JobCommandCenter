@@ -42,19 +42,23 @@ See [state-management.md](./state-management.md) for implementation details.
 
 ### Event-Driven Bridge
 
-Rust and React communicate through typed commands and events; native menus are built in JavaScript:
+Rust and React communicate through typed commands and events; native menus are built in JavaScript. The intended action routing is:
 
 ```
-JavaScript Native Menu Callback → UI Store Update
-Keyboard Shortcut → Event Handler → Context or Store Action → State Update
+JavaScript Native Menu Callback → Command Execution → State Update
+Keyboard Shortcut → Command Execution → State Update
 Command Palette → Command Selection → Command Execution → State Update
 ```
 
-The command palette uses the registry; keyboard shortcuts and menus also call context or store actions directly.
+**Known implementation debt:** The command palette uses the registry, but
+`src/lib/menu.ts` and `src/hooks/use-keyboard-shortcuts.ts` currently call context
+or store actions directly. These paths violate the command-system invariant and
+should be routed through commands.
 
 ### Command-Centric Design
 
-Command-palette actions flow through a centralized [command system](./command-system.md):
+Every user action must flow through the centralized [command system](./command-system.md),
+including menu actions, keyboard shortcuts, and command-palette actions:
 
 - **Commands** are pure objects with `execute()` functions
 - **Context** provides preference and notification actions; commands read UI state with `getState()`
