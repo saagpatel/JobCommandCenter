@@ -11,7 +11,7 @@ A Tauri 2 desktop hub for an automated job-search pipeline. Tracks job listings,
 | State    | Zustand v5, TanStack Query v5                   |
 | Desktop  | Tauri v2, Rust, SQLite (sqlx)                   |
 | Sidecar  | Python 3.12, FastAPI (port 9876)                |
-| Testing  | Vitest v4, Testing Library, pytest              |
+| Testing  | Vitest v5, Testing Library, pytest              |
 | Quality  | ESLint, Prettier, ast-grep, knip, jscpd, clippy |
 
 ## What's Built (v1.0)
@@ -53,19 +53,18 @@ A Tauri 2 desktop hub for an automated job-search pipeline. Tracks job listings,
 
 ```bash
 # Install JS dependencies
-pnpm install
-
-# Install Python sidecar
-cd sidecar && pip install -e ".[test]" && cd ..
-
-# One-time: install Playwright browser
-playwright install chromium
+pnpm install --frozen-lockfile
 
 # Run quality gate
 pnpm run check:all
 ```
 
 Ask the operator to start the dev server (`pnpm run tauri:dev`) when interactive feedback is needed.
+
+For focused tests, native prerequisites, and the fixture-only Python sidecar
+lane, see [Testing](docs/developer/testing.md). `check:all` does not run sidecar
+tests. Browser installation and credentials are for interactive/provider work,
+not routine mocked checks.
 
 ### Credentials Setup
 

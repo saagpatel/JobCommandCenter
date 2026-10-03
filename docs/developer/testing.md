@@ -4,12 +4,55 @@ Testing patterns for Rust and TypeScript, with focus on Tauri-specific mocking.
 
 ## Running Tests
 
+Run from the repository root after `pnpm install --frozen-lockfile`, using the
+Node range and pnpm version in `package.json`. Rust lanes need the stable
+Rust toolchain, `~/.cargo/env`, and the platform's Tauri prerequisites (Linux
+packages are listed in `.github/workflows/test.yml`). No running desktop app,
+credentials, or sidecar is required for the mocked frontend tests.
+
 ```bash
-npm run check:all      # All tests and checks
-npm run test           # TypeScript tests (watch mode)
-npm run test:run       # TypeScript tests (single run)
-npm run rust:test      # Rust tests
+pnpm run check:all      # Frontend/Rust tests and checks
+pnpm run test           # TypeScript tests (watch mode)
+pnpm run test:run       # TypeScript tests (single run)
+pnpm run rust:test      # Rust tests
+pnpm run build          # TypeScript + Vite production bundle
 ```
+
+For a focused frontend check, use
+`pnpm run test:run src/test/example.test.ts`. The broader `check:all` includes
+TypeScript, ESLint, ast-grep, Prettier, Rust format/clippy, and frontend/Rust tests;
+it does not include Python sidecar tests. `test:coverage` is an optional separate
+lane with configured thresholds; a passing test run alone does not imply those
+thresholds pass. Fix commands in [static-analysis.md](static-analysis.md) mutate
+source files, so use check commands for verification.
+
+## Python sidecar tests
+
+Use Python 3.12+ in an isolated environment; from the repository root:
+
+```bash
+python3 -m venv sidecar/.venv
+sidecar/.venv/bin/python -m pip install -r sidecar/requirements.txt
+sidecar/.venv/bin/python -m pip install -e './sidecar[test]'
+cd sidecar
+.venv/bin/python -m pytest -m 'not integration'
+# Focused mocked adapter check:
+.venv/bin/python -m pytest tests/test_ashby.py -m 'not integration' -q
+```
+
+The `integration` marker includes provider/network and opt-in browser checks.
+Exclude it for routine local verification; a bare `pytest` can contact provider
+APIs. Do not configure keys, Gmail OAuth, real submissions, or persistent browser
+profiles to validate a documentation change.
+
+For changes to the navigation guard, the existing loopback-only Chrome proof is
+`JCC_RUN_LOCAL_BROWSER_INTEGRATION=1 .venv/bin/python -m pytest tests/test_playwright_navigation_integration.py -q` from `sidecar`. It needs an
+executable local Chrome (default macOS path; override with
+`JCC_SYSTEM_CHROME_PATH`), uses a disposable profile, and blocks non-loopback
+network resolution. Other integration checks need separately authorized provider
+access. For UI changes, ask the operator to start `pnpm run tauri:dev` and check
+the changed flow with synthetic data; frontend/browser evidence does not prove
+Keychain, native desktop, or provider behavior.
 
 ## TypeScript Testing
 

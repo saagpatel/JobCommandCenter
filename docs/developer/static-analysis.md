@@ -4,25 +4,25 @@ All static analysis tools configured in this app and how to use them.
 
 ## Quick Reference
 
-| Tool           | Purpose                  | Command                  | In check:all |
-| -------------- | ------------------------ | ------------------------ | ------------ |
-| TypeScript     | Type checking            | `npm run typecheck`      | Yes          |
-| ESLint         | Syntax, style, TS rules  | `npm run lint`           | Yes          |
-| Prettier       | Code formatting          | `npm run format:check`   | Yes          |
-| ast-grep       | Architecture patterns    | `npm run ast:lint`       | Yes          |
-| React Compiler | Automatic memoization    | Build-time               | Yes          |
-| cargo fmt      | Rust formatting          | `npm run rust:fmt:check` | Yes          |
-| clippy         | Rust linting             | `npm run rust:clippy`    | Yes          |
-| Vitest         | Frontend tests           | `npm run test:run`       | Yes          |
-| cargo test     | Rust tests               | `npm run rust:test`      | Yes          |
-| knip           | Unused code detection    | `npm run knip`           | No           |
-| jscpd          | Duplicate code detection | `npm run jscpd`          | No           |
+| Tool           | Purpose                  | Command                   | In check:all |
+| -------------- | ------------------------ | ------------------------- | ------------ |
+| TypeScript     | Type checking            | `pnpm run typecheck`      | Yes          |
+| ESLint         | Syntax, style, TS rules  | `pnpm run lint`           | Yes          |
+| Prettier       | Code formatting          | `pnpm run format:check`   | Yes          |
+| ast-grep       | Architecture patterns    | `pnpm run ast:lint`       | Yes          |
+| React Compiler | Automatic memoization    | Build-time                | Yes          |
+| cargo fmt      | Rust formatting          | `pnpm run rust:fmt:check` | Yes          |
+| clippy         | Rust linting             | `pnpm run rust:clippy`    | Yes          |
+| Vitest         | Frontend tests           | `pnpm run test:run`       | Yes          |
+| cargo test     | Rust tests               | `pnpm run rust:test`      | Yes          |
+| knip           | Unused code detection    | `pnpm run knip`           | No           |
+| jscpd          | Duplicate code detection | `pnpm run jscpd`          | No           |
 
 ## Running All Checks
 
 ```bash
-npm run check:all    # Must pass before commits
-npm run fix:all      # Auto-fix what can be fixed
+pnpm run check:all    # Must pass before commits
+pnpm run fix:all      # Auto-fix what can be fixed
 ```
 
 ## Tool Details
@@ -32,8 +32,8 @@ npm run fix:all      # Auto-fix what can be fixed
 Handles syntax, style, and TypeScript-specific rules.
 
 ```bash
-npm run lint        # Check for issues
-npm run lint:fix    # Auto-fix issues
+pnpm run lint        # Check for issues
+pnpm run lint:fix    # Auto-fix issues
 ```
 
 Configuration in `eslint.config.js`.
@@ -43,8 +43,8 @@ Configuration in `eslint.config.js`.
 Consistent code formatting.
 
 ```bash
-npm run format:check   # Check formatting
-npm run format         # Fix formatting
+pnpm run format:check   # Check formatting
+pnpm run format         # Fix formatting
 ```
 
 Configuration in `prettier.config.js`.
@@ -54,8 +54,8 @@ Configuration in `prettier.config.js`.
 Enforces architectural patterns ESLint can't detect. Catches violations like Zustand destructuring and hooks in wrong directories.
 
 ```bash
-npm run ast:lint    # Scan for violations
-npm run ast:fix     # Auto-fix where possible
+pnpm run ast:lint    # Scan for violations
+pnpm run ast:fix     # Auto-fix where possible
 ```
 
 **Key rules:**
@@ -81,11 +81,11 @@ The compiler analyzes code and adds memoization where beneficial.
 ### Rust Tooling
 
 ```bash
-npm run rust:fmt:check   # Check formatting
-npm run rust:fmt         # Fix formatting
-npm run rust:clippy      # Lint with clippy
-npm run rust:clippy:fix  # Auto-fix clippy warnings
-npm run rust:test        # Run Rust tests
+pnpm run rust:fmt:check   # Check formatting
+pnpm run rust:fmt         # Fix formatting
+pnpm run rust:clippy      # Lint with clippy
+pnpm run rust:clippy:fix  # Auto-fix clippy warnings
+pnpm run rust:test        # Run Rust tests
 ```
 
 ### knip (Periodic Cleanup)
@@ -93,7 +93,7 @@ npm run rust:test        # Run Rust tests
 Detects unused exports, dependencies, and files. Not in `check:all` - use periodically.
 
 ```bash
-npm run knip
+pnpm run knip
 ```
 
 ### jscpd (Periodic Cleanup)
@@ -101,17 +101,19 @@ npm run knip
 Detects duplicated code blocks. Not in `check:all` - use periodically.
 
 ```bash
-npm run jscpd
+pnpm run jscpd
 ```
 
 Use the `/cleanup` command for guided analysis and cleanup of both knip and jscpd findings.
 
 ## CI Integration
 
-`check:all` runs in CI. Ensure it passes locally before pushing:
+CI runs selected TypeScript/frontend, Rust clippy/tests, and Python lanes;
+`check:all` is the broader local gate. See [testing.md](testing.md) for setup and
+the separate sidecar lane. Run locally before pushing:
 
 ```bash
-npm run check:all
+pnpm run check:all
 ```
 
 ## Adding New Rules

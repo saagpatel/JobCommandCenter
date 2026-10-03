@@ -6,7 +6,7 @@ Thank you for your interest in contributing!
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v20+)
+- Node.js and pnpm versions compatible with [package.json](../package.json); see [testing](developer/testing.md) for verification setup
 - [Rust](https://rustup.rs/) (latest stable)
 - Familiarity with React, TypeScript, and Rust
 
@@ -16,9 +16,12 @@ Thank you for your interest in contributing!
 git clone https://github.com/saagpatel/JobCommandCenter.git
 cd JobCommandCenter
 pnpm install --frozen-lockfile
-pnpm run tauri:dev
 pnpm run check:all
 ```
+
+Interactive desktop checks require the operator to start `pnpm run tauri:dev`.
+See [testing](developer/testing.md) for focused, Rust, sidecar, and conditional
+browser checks.
 
 ## How to Contribute
 
