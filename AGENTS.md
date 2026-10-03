@@ -10,7 +10,7 @@ This repository is **Job Command Center** — a Tauri 2 desktop hub for an autom
 - Review `docs/developer/architecture-guide.md` for high-level patterns.
 - Check `docs/developer/README.md` for the full documentation index.
 - Check git status and project structure before editing.
-- Use `.codex/verify.commands` as the canonical verification source.
+- Use `package.json` scripts and `docs/developer/testing.md` as the verification source.
 
 ## Core Rules
 
@@ -66,11 +66,11 @@ This repository is **Job Command Center** — a Tauri 2 desktop hub for an autom
 - Use computer use only for GUI-only desktop behavior that cannot be verified through tests, browser tooling, MCP, or CLI commands.
 - Use artifacts for durable developer notes, screenshots, release packets, and handoff summaries.
 - Keep connectors read-first and task-scoped. Do not pull external context unless it directly supports the current repo task.
-- Keep `.codex/verify.commands` and `pnpm run check:all` as the verification authority; Codex App tools add evidence but do not replace the repo gate.
+- Keep `package.json` scripts and `docs/developer/testing.md` as the verification authority; Codex App tools add evidence but do not replace the repo gate.
 
 ## Verification
 
-- `.codex/verify.commands` is the canonical verifier for routine Codex work.
+- Follow `docs/developer/testing.md` for routine verification and prerequisites.
 - Current canonical verifier:
   - `pnpm install --frozen-lockfile`
   - `pnpm run check:all`
