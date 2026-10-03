@@ -47,7 +47,7 @@ A Tauri 2 desktop hub for an automated job-search pipeline. Tracks job listings,
 
 ### Prerequisites
 
-- Node.js 20+ and pnpm
+- Node.js 22.12+ (22.x), 24.x, or 26+ and pnpm
 - Rust (latest stable) — [rustup.rs](https://rustup.rs/)
 - Python 3.12+
 
