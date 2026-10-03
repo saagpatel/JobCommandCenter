@@ -52,7 +52,7 @@ The permissions in `src-tauri/capabilities/default.json` and desktop-only `src-t
 | `process:default`           | The updater flow can relaunch after an accepted update.                                    |
 | `os:default`                | Platform and locale detection drive desktop-specific UI behavior.                          |
 | `global-shortcut:default`   | Quick-pane activation uses a system-wide shortcut.                                         |
-| `updater:default`           | Desktop release flow checks signed update metadata (`desktop.json`).                                        |
+| `updater:default`           | Desktop release flow checks signed update metadata (`desktop.json`).                       |
 
 Do not add new filesystem, shell, process, updater, notification, shortcut, clipboard, or dialog permissions without updating this table and the relevant feature docs.
 

@@ -157,10 +157,10 @@ const { data } = useQuery({
 
 Default retry settings in `query-client.ts`:
 
-| Query Type | Retries | Rationale                            |
-| ---------- | ------- | ------------------------------------ |
-| Queries    | 1       | Transient failures may recover       |
-| Mutations  | 0       | Explicit idempotent retries only      |
+| Query Type | Retries | Rationale                        |
+| ---------- | ------- | -------------------------------- |
+| Queries    | 1       | Transient failures may recover   |
+| Mutations  | 0       | Explicit idempotent retries only |
 
 ## Global Error Toasts
 

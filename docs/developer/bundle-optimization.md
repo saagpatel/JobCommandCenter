@@ -134,7 +134,7 @@ Only include permissions you use in `src-tauri/capabilities/desktop.json`.
 | Issue                    | Solution                                          |
 | ------------------------ | ------------------------------------------------- |
 | Large initial bundle     | Implement code splitting                          |
-| Duplicate dependencies   | `pnpm list react` then `pnpm dedupe`                  |
+| Duplicate dependencies   | `pnpm list react` then `pnpm dedupe`              |
 | Unused shadcn components | Remove from `src/components/ui/`                  |
 | Heavy date library       | Use `date-fns` with tree shaking or native `Intl` |
 

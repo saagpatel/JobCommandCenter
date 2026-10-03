@@ -224,14 +224,14 @@ vi.mock('@/lib/tauri-bindings', () => ({
 
 ## Available Commands
 
-| Command                   | Parameters                            | Returns                          | Description         |
-| ------------------------- | ------------------------------------- | -------------------------------- | ------------------- |
-| `loadPreferences`         | none                                  | `Result<AppPreferences, string>` | Load preferences    |
-| `savePreferences`         | `preferences: AppPreferences`         | `Result<null, string>`           | Save preferences    |
-| `sendNativeNotification`  | `title: string, body: string \| null` | `Result<null, string>`           | System notification |
-| `saveEmergencyData`       | `filename: string, data: JsonValue`   | `Result<null, RecoveryError>`           | Save recovery data  |
-| `loadEmergencyData`       | `filename: string`                    | `Result<JsonValue, RecoveryError>`      | Load recovery data  |
-| `cleanupOldRecoveryFiles` | none                                  | `Result<number, RecoveryError>`         | Cleanup old files   |
+| Command                   | Parameters                            | Returns                            | Description         |
+| ------------------------- | ------------------------------------- | ---------------------------------- | ------------------- |
+| `loadPreferences`         | none                                  | `Result<AppPreferences, string>`   | Load preferences    |
+| `savePreferences`         | `preferences: AppPreferences`         | `Result<null, string>`             | Save preferences    |
+| `sendNativeNotification`  | `title: string, body: string \| null` | `Result<null, string>`             | System notification |
+| `saveEmergencyData`       | `filename: string, data: JsonValue`   | `Result<null, RecoveryError>`      | Save recovery data  |
+| `loadEmergencyData`       | `filename: string`                    | `Result<JsonValue, RecoveryError>` | Load recovery data  |
+| `cleanupOldRecoveryFiles` | none                                  | `Result<number, RecoveryError>`    | Cleanup old files   |
 
 ## Dependencies
 
