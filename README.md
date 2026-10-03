@@ -4,15 +4,15 @@ A Tauri 2 desktop hub for an automated job-search pipeline. Tracks job listings,
 
 ## Stack
 
-| Layer    | Technologies                                    |
-| -------- | ----------------------------------------------- |
-| Frontend | React 19, TypeScript, Vite 7                    |
-| UI       | shadcn/ui components, Tailwind CSS v4, Lucide React     |
-| State    | Zustand v5, TanStack Query v5                   |
-| Desktop  | Tauri v2, Rust, SQLite (sqlx)                   |
-| Sidecar  | Python 3.12+, FastAPI (port 9876)                |
-| Testing  | Vitest v5, Testing Library, pytest              |
-| Quality  | ESLint, Prettier, ast-grep, knip, jscpd, clippy |
+| Layer    | Technologies                                        |
+| -------- | --------------------------------------------------- |
+| Frontend | React 19, TypeScript, Vite 7                        |
+| UI       | shadcn/ui components, Tailwind CSS v4, Lucide React |
+| State    | Zustand v5, TanStack Query v5                       |
+| Desktop  | Tauri v2, Rust, SQLite (sqlx)                       |
+| Sidecar  | Python 3.12+, FastAPI (port 9876)                   |
+| Testing  | Vitest v5, Testing Library, pytest                  |
+| Quality  | ESLint, Prettier, ast-grep, knip, jscpd, clippy     |
 
 ## What's Built (v1.0)
 

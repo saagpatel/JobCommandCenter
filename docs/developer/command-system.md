@@ -232,5 +232,5 @@ Group labels are translated via `commands.group.{groupName}` keys.
 | Use `labelKey` with translation keys               | Hardcode label strings            |
 | Use `getState()` in execute functions              | Use hooks in commands             |
 | Check `isAvailable` for context-dependent commands | Show unavailable commands         |
-| Use translated labels and descriptions for search | Assume `keywords` are searched    |
+| Use translated labels and descriptions for search  | Assume `keywords` are searched    |
 | Use `context.showToast()` for feedback             | Silently execute without feedback |

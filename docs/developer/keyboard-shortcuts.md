@@ -96,19 +96,19 @@ Native DOM event listeners are used instead of libraries like `react-hotkeys-hoo
 
 ## Conventions
 
-| Pattern         | Keys                |
-| --------------- | ------------------- |
-| Preferences     | Cmd/Ctrl + ,        |
-| Search/Command  | Cmd/Ctrl + K        |
-| Panel toggles   | Cmd/Ctrl + [,] |
-| File operations | Cmd/Ctrl + N,O,S    |
-| Undo            | Cmd/Ctrl + Z        |
-| Redo            | Cmd/Ctrl + Shift+Z  |
+| Pattern         | Keys               |
+| --------------- | ------------------ |
+| Preferences     | Cmd/Ctrl + ,       |
+| Search/Command  | Cmd/Ctrl + K       |
+| Panel toggles   | Cmd/Ctrl + [,]     |
+| File operations | Cmd/Ctrl + N,O,S   |
+| Undo            | Cmd/Ctrl + Z       |
+| Redo            | Cmd/Ctrl + Shift+Z |
 
 ## Troubleshooting
 
-| Issue                             | Check                                              |
-| --------------------------------- | -------------------------------------------------- |
+| Issue                             | Check                                                            |
+| --------------------------------- | ---------------------------------------------------------------- |
 | Shortcuts not firing              | `useKeyboardShortcuts` composed by `useMainWindowEventListeners` |
-| Browser intercepts shortcut       | Add `e.preventDefault()`                           |
-| Different behavior Mac vs Windows | Test `e.metaKey \|\| e.ctrlKey`                    |
+| Browser intercepts shortcut       | Add `e.preventDefault()`                                         |
+| Different behavior Mac vs Windows | Test `e.metaKey \|\| e.ctrlKey`                                  |

@@ -4,7 +4,7 @@ version = "1.0.0"
 description = "Job Command Center - automated job search pipeline"
 authors = ["you"]
 edition = "2021"
-rust-version = "1.82"
+rust-version = "1.94"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
