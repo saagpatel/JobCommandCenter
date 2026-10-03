@@ -90,19 +90,19 @@ importers:
         specifier: ^2.3.2
         version: 2.3.2
       '@tauri-apps/plugin-dialog':
-        specifier: ~2.7.3
+        specifier: 2.7.3
         version: 2.7.3
       '@tauri-apps/plugin-fs':
-        specifier: ~2.5.2
+        specifier: 2.5.2
         version: 2.5.2
       '@tauri-apps/plugin-log':
-        specifier: ~2.9.2
+        specifier: 2.9.2
         version: 2.9.2
       '@tauri-apps/plugin-notification':
         specifier: ^2.3.3
         version: 2.3.3
       '@tauri-apps/plugin-opener':
-        specifier: ~2.5.5
+        specifier: 2.5.5
         version: 2.5.5
       '@tauri-apps/plugin-os':
         specifier: ^2.3.2
@@ -111,7 +111,7 @@ importers:
         specifier: ^2.3.1
         version: 2.3.1
       '@tauri-apps/plugin-updater':
-        specifier: ~2.11.0
+        specifier: 2.11.0
         version: 2.11.0
       '@tauri-apps/plugin-window-state':
         specifier: ^2.4.1
