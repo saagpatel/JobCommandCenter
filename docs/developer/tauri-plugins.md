@@ -6,7 +6,7 @@ Guide to all Tauri plugins installed in this app, plus built-in features and gui
 
 Capability review marker: `local-first-tauri-capability-reviewed`
 
-The broad-looking permissions in `src-tauri/capabilities/default.json` are intentional for the current desktop feature set. Keep this section updated whenever capability permissions change.
+The permissions in `src-tauri/capabilities/default.json` and desktop-only `src-tauri/capabilities/desktop.json` are intentional for the current desktop feature set. Keep this section updated whenever capability permissions change.
 
 ### Core Functionality
 
@@ -52,7 +52,7 @@ The broad-looking permissions in `src-tauri/capabilities/default.json` are inten
 | `process:default`           | The updater flow can relaunch after an accepted update.                                    |
 | `os:default`                | Platform and locale detection drive desktop-specific UI behavior.                          |
 | `global-shortcut:default`   | Quick-pane activation uses a system-wide shortcut.                                         |
-| `updater:default`           | Desktop release flow checks signed update metadata.                                        |
+| `updater:default`           | Desktop release flow checks signed update metadata (`desktop.json`).                                        |
 
 Do not add new filesystem, shell, process, updater, notification, shortcut, clipboard, or dialog permissions without updating this table and the relevant feature docs.
 
@@ -192,7 +192,7 @@ await openPath('/path/to/document.pdf')
 
 ### System Tray
 
-Built into Tauri v2 via the `tray-icon` feature. See [Tauri docs](https://v2.tauri.app/learn/system-tray/).
+Available in Tauri v2 via the `tray-icon` feature; this repo does not currently enable that feature. See [Tauri docs](https://v2.tauri.app/learn/system-tray/).
 
 ### App Menus
 
@@ -219,7 +219,7 @@ These plugins aren't included by default but are commonly needed:
 1. **Install via CLI**:
 
    ```bash
-   npm run tauri add PLUGIN_NAME
+   pnpm run tauri add PLUGIN_NAME
    ```
 
 2. **Check placement** in `lib.rs`:

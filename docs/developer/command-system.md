@@ -54,7 +54,7 @@ interface AppCommand {
   descriptionKey?: string // Translation key for description
   icon?: LucideIcon
   group?: string // Grouping for command palette
-  keywords?: string[] // Additional search terms
+  keywords?: string[] // Metadata; current search uses label and description only
   shortcut?: string // Display shortcut (e.g., '⌘+1')
   execute: (context: CommandContext) => void | Promise<void>
   isAvailable?: (context: CommandContext) => boolean
@@ -139,13 +139,12 @@ const handleKeyDown = (e: KeyboardEvent) => {
 
 ### Native Menus
 
-Menu events trigger commands through Tauri events:
+Native menus use JavaScript callbacks in `src/lib/menu.ts` that update the UI store directly:
 
 ```typescript
-// React side - in useMainWindowEventListeners
-listen('menu-preferences', () => {
-  commandContext.openPreferences()
-})
+function handleOpenPreferences() {
+  useUIStore.getState().setPreferencesOpen(true)
+}
 ```
 
 ## Adding New Commands
@@ -200,16 +199,16 @@ export function initializeCommandSystem(): void {
 
 ```typescript
 // src/hooks/use-command-context.ts
+// Extend the module-level singleton with any new actions.
+const commandContext: CommandContext = {
+  // ... existing actions
+  myNewAction: () => {
+    /* implementation */
+  },
+}
+
 export function useCommandContext(): CommandContext {
-  return useMemo(
-    () => ({
-      // ... existing actions
-      myNewAction: () => {
-        /* implementation */
-      },
-    }),
-    []
-  )
+  return commandContext
 }
 
 // Update CommandContext type in types.ts
@@ -219,10 +218,10 @@ export function useCommandContext(): CommandContext {
 
 Organize commands into logical groups (used in command palette headings):
 
-- **navigation**: Sidebar toggles, view switching
+- **navigation**: Sidebar visibility
 - **settings**: Preferences, configuration
-- **notifications**: Notification actions
-- **window**: Window management (minimize, close, etc.)
+- **debug**: Test-toast command
+- Ungrouped commands: Window management (minimize, close, etc.)
 
 Group labels are translated via `commands.group.{groupName}` keys.
 
@@ -233,5 +232,5 @@ Group labels are translated via `commands.group.{groupName}` keys.
 | Use `labelKey` with translation keys               | Hardcode label strings            |
 | Use `getState()` in execute functions              | Use hooks in commands             |
 | Check `isAvailable` for context-dependent commands | Show unavailable commands         |
-| Provide `keywords` for better searchability        | Rely only on label matching       |
+| Use translated labels and descriptions for search | Assume `keywords` are searched    |
 | Use `context.showToast()` for feedback             | Silently execute without feedback |

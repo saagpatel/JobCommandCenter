@@ -5,7 +5,7 @@
 This app uses a modern CSS stack optimized for Tauri desktop applications:
 
 - **Tailwind CSS v4** with CSS-based configuration
-- **shadcn/ui v4** component library
+- **shadcn/ui** component library
 - **OKLCH color space** for perceptually uniform colors
 - **Desktop-specific defaults** for native app feel
 
@@ -250,8 +250,8 @@ src/components/
 ### Adding Components
 
 ```bash
-npx shadcn@latest add button
-npx shadcn@latest add dialog
+pnpm dlx shadcn@latest add button
+pnpm dlx shadcn@latest add dialog
 ```
 
 Components are copied to `src/components/ui/` and can be customized.
@@ -275,7 +275,7 @@ const buttonVariants = cva('...', {
 
 ### Available Components
 
-This app includes commonly needed components. Run `npx shadcn@latest add [component]` to add more from [ui.shadcn.com](https://ui.shadcn.com/docs/components).
+This app includes commonly needed components. Run `pnpm dlx shadcn@latest add [component]` to add more from [ui.shadcn.com](https://ui.shadcn.com/docs/components).
 
 ## The `cn()` Utility
 

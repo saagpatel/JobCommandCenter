@@ -42,22 +42,22 @@ See [state-management.md](./state-management.md) for implementation details.
 
 ### Event-Driven Bridge
 
-Rust and React communicate through events for loose coupling:
+Rust and React communicate through typed commands and events; native menus are built in JavaScript:
 
 ```
-Rust Menu Click → Event Emission → React Listener → Command Execution → State Update
-Keyboard Shortcut → Event Handler → Command Execution → State Update
+JavaScript Native Menu Callback → UI Store Update
+Keyboard Shortcut → Event Handler → Context or Store Action → State Update
 Command Palette → Command Selection → Command Execution → State Update
 ```
 
-This ensures the same actions work consistently across all interaction methods.
+The command palette uses the registry; keyboard shortcuts and menus also call context or store actions directly.
 
 ### Command-Centric Design
 
-All user actions flow through a centralized [command system](./command-system.md):
+Command-palette actions flow through a centralized [command system](./command-system.md):
 
 - **Commands** are pure objects with `execute()` functions
-- **Context** provides all state and actions commands need
+- **Context** provides preference and notification actions; commands read UI state with `getState()`
 - **Registration** merges commands from different domains at runtime
 
 This decouples UI triggers from implementations and enables consistent behavior.
@@ -100,9 +100,9 @@ Event-Driven Bridge
 ```
 MainWindow (Top-level orchestrator)
 ├── TitleBar (Window controls + toolbar)
-├── LeftSidebar (Collapsible panel)
+├── LeftSideBar (Collapsible panel)
 ├── MainWindowContent (Primary content area)
-├── RightSidebar (Collapsible panel)
+├── RightSideBar (Collapsible panel)
 └── Global Overlays
     ├── PreferencesDialog (Settings)
     ├── CommandPalette (Cmd+K)
@@ -188,7 +188,7 @@ CSP prevents XSS attacks. Configuration is in `src-tauri/tauri.conf.json`.
 
 | Data Type       | Storage                       | Security Level |
 | --------------- | ----------------------------- | -------------- |
-| API tokens/keys | OS keychain (`keyring` crate) | High           |
+| API keys        | OS keychain (`keyring` crate) | High           |
 | App preferences | App data directory (JSON)     | Medium         |
 | User content    | App data directory/SQLite     | Medium         |
 
@@ -196,7 +196,7 @@ Never store sensitive tokens in `tauri-plugin-store` (plain JSON on disk). See [
 
 ### Rust-First Security
 
-All file operations happen in Rust with built-in validation:
+Rust recovery commands validate filenames (`validate_filename` in `src-tauri/src/types.rs`); the Python sidecar also performs file operations. Illustrative example (not present in this repo):
 
 ```rust
 fn is_blocked_directory(path: &Path) -> bool {
@@ -217,7 +217,7 @@ pub fn sanitize_filename(filename: &str) -> String {
 
 ### Atomic File Operations
 
-All disk writes use atomic operations to prevent corruption:
+Rust preference and recovery JSON writes use temporary-file rename to prevent corruption:
 
 ```rust
 // Write to temp file, then rename (atomic)
@@ -251,7 +251,7 @@ See [tauri-commands.md](./tauri-commands.md) for adding new commands.
 Before any changes are committed:
 
 ```bash
-npm run check:all
+pnpm run check:all
 ```
 
 See [static-analysis.md](./static-analysis.md) for all tools included.

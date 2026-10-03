@@ -172,7 +172,7 @@ All three files must have matching versions:
 
 ### Behavior
 
-- Checks for updates 5 seconds after app launch
+- Checks for updates 5 seconds after app launch only with `VITE_UPDATER_ACTIVE=true`
 - Shows confirmation dialog when update is available
 - Downloads and installs in background
 - Offers to restart when complete
@@ -181,7 +181,7 @@ All three files must have matching versions:
 ### Update Flow
 
 ```
-App Launch → (5s delay) → Check GitHub → Show Dialog → Download → Install → Restart
+App Launch → Updater opt-in enabled → (5s delay) → Check GitHub → Show Dialog → Download → Install → Restart
 ```
 
 ### Implementation
@@ -190,8 +190,11 @@ App Launch → (5s delay) → Check GitHub → Show Dialog → Download → Inst
 // src/App.tsx
 import { check } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
+import { updaterEnabled } from '@/lib/updater-config'
 
 useEffect(() => {
+  if (!updaterEnabled) return
+
   const checkForUpdates = async () => {
     try {
       const update = await check()
@@ -218,8 +221,7 @@ useEffect(() => {
 
 Users can manually check via:
 
-- **Menu**: App → Check for Updates
-- **Command Palette**: Cmd+K → "Check for Updates"
+- **Menu**: App → Check for Updates (only with the updater opt-in enabled)
 
 ## Release Artifacts
 
@@ -227,7 +229,7 @@ Each release creates:
 
 - **macOS**: `.dmg` installer
 - **Windows**: `.msi` installer (when configured)
-- **Linux**: `.deb` and `.AppImage` (when configured)
+- **Linux**: `.AppImage` (current release workflow)
 - **Auto-updater**: `latest.json` manifest and `.sig` signature files
 
 ## Security

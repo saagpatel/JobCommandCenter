@@ -8,17 +8,15 @@ Centralized keyboard shortcut management using native DOM event listeners.
 | -------------------- | ----- | ------------- | --------------------- |
 | Open Preferences     | Cmd+, | Ctrl+,        | Opens settings dialog |
 | Command Palette      | Cmd+K | Ctrl+K        | Opens command search  |
-| Toggle Left Sidebar  | Cmd+1 | Ctrl+1        | Show/hide left panel  |
-| Toggle Right Sidebar | Cmd+2 | Ctrl+2        | Show/hide right panel |
+| Toggle Left Sidebar  | Cmd+[ | Ctrl+[        | Show/hide left panel  |
+| Toggle Right Sidebar | Cmd+] | Ctrl+]        | Show/hide right panel |
 
 ## Architecture
 
-All shortcuts are handled in `src/hooks/useMainWindowEventListeners.ts`:
+DOM preferences, view-switching (Cmd/Ctrl+1–6), and sidebar shortcuts are handled in `src/hooks/use-keyboard-shortcuts.ts`, composed by `src/hooks/useMainWindowEventListeners.ts`. Cmd/Ctrl+K is handled separately in `src/components/command-palette/CommandPalette.tsx`. Native menus still declare Cmd/Ctrl+1 and 2 for sidebar toggles in `src/lib/menu.ts`.
 
 ```typescript
-export function useMainWindowEventListeners() {
-  const commandContext = useCommandContext()
-
+export function useKeyboardShortcuts(commandContext: CommandContext) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey) {
@@ -28,7 +26,7 @@ export function useMainWindowEventListeners() {
             commandContext.openPreferences()
             break
           }
-          case '1': {
+          case '[': {
             e.preventDefault()
             const { leftSidebarVisible, setLeftSidebarVisible } =
               useUIStore.getState()
@@ -52,8 +50,8 @@ export function useMainWindowEventListeners() {
 ### 1. Add to event handler
 
 ```typescript
-// src/hooks/useMainWindowEventListeners.ts
-case '3': {
+// src/hooks/use-keyboard-shortcuts.ts
+case 'n': {
   e.preventDefault()
   commandContext.myNewAction()
   break
@@ -67,7 +65,7 @@ case '3': {
 await MenuItem.new({
   id: 'my-action',
   text: t('menu.myAction'),
-  accelerator: 'CmdOrCtrl+3',
+  accelerator: 'CmdOrCtrl+N',
   action: handleMyAction,
 })
 ```
@@ -102,7 +100,7 @@ Native DOM event listeners are used instead of libraries like `react-hotkeys-hoo
 | --------------- | ------------------- |
 | Preferences     | Cmd/Ctrl + ,        |
 | Search/Command  | Cmd/Ctrl + K        |
-| Panel toggles   | Cmd/Ctrl + 1,2,3... |
+| Panel toggles   | Cmd/Ctrl + [,] |
 | File operations | Cmd/Ctrl + N,O,S    |
 | Undo            | Cmd/Ctrl + Z        |
 | Redo            | Cmd/Ctrl + Shift+Z  |
@@ -111,6 +109,6 @@ Native DOM event listeners are used instead of libraries like `react-hotkeys-hoo
 
 | Issue                             | Check                                              |
 | --------------------------------- | -------------------------------------------------- |
-| Shortcuts not firing              | `useMainWindowEventListeners` called in MainWindow |
+| Shortcuts not firing              | `useKeyboardShortcuts` composed by `useMainWindowEventListeners` |
 | Browser intercepts shortcut       | Add `e.preventDefault()`                           |
 | Different behavior Mac vs Windows | Test `e.metaKey \|\| e.ctrlKey`                    |

@@ -7,10 +7,10 @@ A Tauri 2 desktop hub for an automated job-search pipeline. Tracks job listings,
 | Layer    | Technologies                                    |
 | -------- | ----------------------------------------------- |
 | Frontend | React 19, TypeScript, Vite 7                    |
-| UI       | shadcn/ui v4, Tailwind CSS v4, Lucide React     |
+| UI       | shadcn/ui components, Tailwind CSS v4, Lucide React     |
 | State    | Zustand v5, TanStack Query v5                   |
 | Desktop  | Tauri v2, Rust, SQLite (sqlx)                   |
-| Sidecar  | Python 3.12, FastAPI (port 9876)                |
+| Sidecar  | Python 3.12+, FastAPI (port 9876)                |
 | Testing  | Vitest v5, Testing Library, pytest              |
 | Quality  | ESLint, Prettier, ast-grep, knip, jscpd, clippy |
 
@@ -32,8 +32,8 @@ A Tauri 2 desktop hub for an automated job-search pipeline. Tracks job listings,
 
 ### Intelligence
 
-- **Follow-up Manager** — Auto-schedules follow-ups at +7 days after Apply, drafts via Claude AI, sends via Gmail OAuth.
-- **Interview Prep** — AI-generated brief (company overview, likely questions, talking points) auto-triggered on status → Interviewing.
+- **Follow-up Manager** — Auto-schedules follow-ups after Apply using the profile delay (default +7 days), drafts via Claude AI, sends via Gmail OAuth.
+- **Interview Prep** — An empty prep note is created on status → Interviewing; Generate Prep Brief requests the AI brief (company overview, likely questions, talking points).
 - **Analytics Dashboard** — Applications by week, pipeline funnel, response rate, days-to-response, ATS breakdown.
 
 ### Infrastructure
@@ -69,7 +69,7 @@ not routine mocked checks.
 ### Credentials Setup
 
 - **Anthropic API key** — Settings → Credentials (stored in macOS Keychain)
-- **Ashby API key** — Settings → Credentials (stored in macOS Keychain)
+- **Ashby API key** — The adapter accepts an optional key, but startup and Settings → Credentials do not currently wire it.
 - **Gmail** — Place `client_secrets.json` at `~/.jcc/gmail/client_secrets.json` (OAuth2, `gmail.send` scope)
 
 ## Documentation
@@ -81,7 +81,7 @@ not routine mocked checks.
 
 ## License
 
-[MIT](LICENSE.md)
+[MIT](LICENSE)
 
 ---
 
