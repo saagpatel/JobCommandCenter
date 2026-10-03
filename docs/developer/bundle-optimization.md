@@ -26,20 +26,20 @@ strip = true          # Remove debug symbols
 ```json
 {
   "build": {
-    "removeUnusedCommands": true
+    "removeUnusedCommands": false
   }
 }
 ```
 
-Removes Tauri commands not called from your frontend.
+Unused-command removal is currently disabled.
 
 ## Analyzing Bundle Size
 
 ```bash
-npm run build:analyze   # Build and analyze
+pnpm run build:analyze   # Build and analyze
 
 # Manual analysis
-npm run build
+pnpm run build
 du -sh dist/*           # Check output sizes
 ls -lah dist/assets/    # Examine chunks
 ```
@@ -134,7 +134,7 @@ Only include permissions you use in `src-tauri/capabilities/desktop.json`.
 | Issue                    | Solution                                          |
 | ------------------------ | ------------------------------------------------- |
 | Large initial bundle     | Implement code splitting                          |
-| Duplicate dependencies   | `npm ls react` then `npm dedupe`                  |
+| Duplicate dependencies   | `pnpm list react` then `pnpm dedupe`                  |
 | Unused shadcn components | Remove from `src/components/ui/`                  |
 | Heavy date library       | Use `date-fns` with tree shaking or native `Intl` |
 
@@ -143,10 +143,11 @@ Only include permissions you use in `src-tauri/capabilities/desktop.json`.
 ```bash
 # Rust binary size
 cd src-tauri && cargo build --release
-ls -lah target/release/tauri-app
+ls -lah target/release/job-command-center
 
-# Frontend bundle
-npm run build && du -sh dist/
+# Frontend bundle (from repository root)
+cd ..
+pnpm run build && du -sh dist/
 ```
 
 **Remember**: Measure before optimizing. Don't over-optimize prematurely.

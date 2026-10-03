@@ -160,14 +160,14 @@ Default retry settings in `query-client.ts`:
 | Query Type | Retries | Rationale                            |
 | ---------- | ------- | ------------------------------------ |
 | Queries    | 1       | Transient failures may recover       |
-| Mutations  | 1       | Avoid duplicate writes on slow saves |
+| Mutations  | 0       | Explicit idempotent retries only      |
 
 ## Global Error Toasts
 
 Avoid per-query error toasts (causes duplicates). Use global handling:
 
 ```typescript
-// ✅ GOOD: Centralized in query-client.ts
+// Example: centralized handling (not currently configured in src/lib/query-client.ts)
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error, query) => {

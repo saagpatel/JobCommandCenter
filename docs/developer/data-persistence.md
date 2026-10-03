@@ -19,12 +19,12 @@ Need to persist data?
 └─ Emergency/crash recovery? → Recovery System
 ```
 
-All data goes through Rust for type safety and security. Use TanStack Query on the frontend for loading states and cache invalidation.
+SQLite and preference data go through Rust; the Python sidecar handles external APIs and Gmail/browser state. Use TanStack Query on the frontend for loading states and cache invalidation.
 
 ## File Locations
 
 ```text
-~/Library/Application Support/com.jobcommandcenter.app/  (macOS)
+Tauri app data directory for com.jcc.app  (macOS)
 ├── jcc.db                                    # SQLite database
 ├── preferences.json                          # App preferences
 └── recovery/                                 # Emergency data
@@ -33,7 +33,7 @@ All data goes through Rust for type safety and security. Use TanStack Query on t
 
 ## Atomic Write Pattern (Critical)
 
-All file writes use atomic operations to prevent corruption:
+Rust preference and recovery JSON writes use atomic operations to prevent corruption:
 
 ```rust
 // Write to temp file first, then rename (atomic)
@@ -75,7 +75,7 @@ export function usePreferences() {
   })
 }
 
-export function useUpdatePreferences() {
+export function useSavePreferences() {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -94,15 +94,13 @@ For saving data before crashes or risky operations:
 
 ```typescript
 // Save emergency data
-await commands.saveEmergencyData({
-  filename: 'unsaved-work',
-  data: { content: userContent, timestamp: Date.now() },
+await commands.saveEmergencyData('unsaved-work', {
+  content: userContent,
+  timestamp: Date.now(),
 })
 
 // Load on startup
-const recoveryData = await commands.loadEmergencyData({
-  filename: 'unsaved-work',
-})
+const recoveryData = await commands.loadEmergencyData('unsaved-work')
 if (recoveryData.status === 'ok' && recoveryData.data) {
   // Show recovery dialog
 }

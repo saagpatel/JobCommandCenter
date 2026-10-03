@@ -15,7 +15,7 @@ This app supports macOS, Windows, and Linux. This guide covers platform-specific
 - macOS is the primary development target
 - No Windows code signing (configure your own certificates)
 - Linux uses native decorations for desktop environment compatibility
-- Keyboard shortcuts use `mod+` prefix (Cmd on macOS, Ctrl elsewhere)
+- DOM keyboard shortcuts check `metaKey`/`ctrlKey`; native menu accelerators use `CmdOrCtrl`
 
 ## Platform Detection
 
@@ -275,7 +275,7 @@ JSON Merge Patch **replaces arrays entirely**, not element-by-element. Each plat
 
 ```bash
 # Runs on current platform
-npm run dev
+pnpm run tauri:dev
 ```
 
 ### Production Builds
@@ -284,7 +284,7 @@ Builds are platform-specific. You can only build for your current OS (cross-comp
 
 ```bash
 # Build for current platform
-npm run build
+pnpm run tauri:build
 ```
 
 ### CI/CD Builds

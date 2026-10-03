@@ -2,7 +2,7 @@
 
 Patterns for calling external HTTP APIs from Tauri applications.
 
-> **Note:** HTTP client dependencies are not installed in this app. Install `reqwest` (Rust) and optionally `tauri-plugin-keyring` (for token storage) when your app needs external API calls.
+> **Note:** `reqwest` and the `keyring` crate are already installed. Rust uses `reqwest` for local sidecar HTTP; external API clients live in the Python sidecar.
 
 ## Rust vs Frontend: When to Use Which
 
@@ -28,10 +28,7 @@ Patterns for calling external HTTP APIs from Tauri applications.
 
 ## Setup
 
-```bash
-# Rust HTTP client
-cd src-tauri && cargo add reqwest --features json,rustls-tls
-```
+`src-tauri/Cargo.toml` configures `reqwest` with JSON support and default features disabled for localhost HTTP. External HTTPS examples below require enabling a TLS feature first.
 
 For secure token storage, see the Authentication section below.
 
@@ -130,9 +127,7 @@ export function useUpdateUser() {
 
 For OS keychain access, use the `keyring` crate directly:
 
-```bash
-cd src-tauri && cargo add keyring
-```
+`keyring` is already declared in `src-tauri/Cargo.toml` with the `apple-native` feature.
 
 ```rust
 use keyring::Entry;
@@ -236,6 +231,7 @@ The opt-in local integration proof uses isolated Chrome state and loopback
 servers only:
 
 ```bash
+cd sidecar
 JCC_RUN_LOCAL_BROWSER_INTEGRATION=1 \
 JCC_SYSTEM_CHROME_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
 python -m pytest -q tests/test_playwright_navigation_integration.py

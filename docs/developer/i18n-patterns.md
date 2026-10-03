@@ -2,7 +2,7 @@
 
 ## Overview
 
-This app uses [react-i18next](https://react.i18next.com/) for internationalization. All user-facing strings, including native menus, are translated from a single source of truth in JSON translation files.
+This app uses [react-i18next](https://react.i18next.com/) for internationalization. Translation files supply shared UI strings and native menu labels; some feature screens and notifications still use literal strings.
 
 ### Key Design Decisions
 

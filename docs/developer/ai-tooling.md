@@ -4,7 +4,7 @@ This document captures Claude Code-specific commands and task-focused agents tha
 
 ## Claude Code Commands
 
-- `/check` - Check work against architecture, run `npm run check:all`, and suggest a commit message.
+- `/check` - Check work against architecture, run the legacy `npm run check:all` instruction (the repo equivalent is `pnpm run check:all`), and suggest a commit message.
 - `/cleanup` - Run static analysis such as knip, jscpd, and `check:all`, then return structured recommendations.
 - `/init` - One-time template initialization for app name, description, and configuration updates.
 
@@ -18,5 +18,5 @@ This document captures Claude Code-specific commands and task-focused agents tha
 ## Usage Notes
 
 - Treat these workflows as Claude Code-specific unless the user explicitly asks to use them elsewhere.
-- Codex should prefer the repo's canonical verifier in `.codex/verify.commands`.
+- Codex should prefer the repo's scripts in `package.json` and prerequisites in `docs/developer/testing.md`.
 - Keep durable architecture and implementation patterns in the relevant `docs/developer/` files, not in tool-specific command catalogs.

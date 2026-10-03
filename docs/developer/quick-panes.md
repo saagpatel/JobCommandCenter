@@ -209,7 +209,7 @@ listen('quick-pane-submit', async ({ payload }) => {
 
 ### Changing Window Size
 
-Update the constants in `src-tauri/src/lib.rs`:
+Update the constants in `src-tauri/src/commands/quick_pane.rs`:
 
 ```rust
 const QUICK_PANE_WIDTH: f64 = 500.0;

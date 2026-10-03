@@ -38,10 +38,11 @@ type Result<T, E> = { status: 'ok'; data: T } | { status: 'error'; error: E }
 
 See [error-handling.md](./error-handling.md) for comprehensive error handling patterns including structured error types, retry logic, and user feedback.
 
-Handle both cases:
+Handle both cases (using the `unwrapResult` helper below to load the complete preferences):
 
 ```typescript
-const result = await commands.savePreferences({ theme: 'dark' })
+const preferences = unwrapResult(await commands.loadPreferences())
+const result = await commands.savePreferences({ ...preferences, theme: 'dark' })
 
 if (result.status === 'error') {
   toast.error('Failed to save', { description: result.error })
@@ -101,7 +102,7 @@ const handleSave = async () => {
 ### 1. Define the Rust command
 
 ```rust
-// src-tauri/src/lib.rs
+// src-tauri/src/commands/my_feature.rs
 
 #[tauri::command]
 #[specta::specta]  // Add this attribute
@@ -129,7 +130,7 @@ pub struct MyType {
 pub fn generate_bindings() -> Builder<tauri::Wry> {
     Builder::<tauri::Wry>::new().commands(collect_commands![
         // ... existing commands
-        crate::my_new_command,  // Add here
+        crate::commands::my_feature::my_new_command,  // Add here
     ])
 }
 ```
@@ -137,7 +138,7 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
 ### 4. Regenerate TypeScript bindings
 
 ```bash
-npm run rust:bindings
+pnpm run rust:bindings
 ```
 
 This runs `cargo test export_bindings -- --ignored` which generates `src/lib/bindings.ts`.
@@ -154,16 +155,18 @@ const result = await commands.myNewCommand('arg')
 
 Always commit:
 
-- Rust changes (`src-tauri/src/lib.rs`, `src-tauri/src/bindings.rs`)
+- Rust changes (`src-tauri/src/commands/`, `src-tauri/src/bindings.rs`)
 - Generated TypeScript (`src/lib/bindings.ts`)
 
 ## File Structure
 
 ```
-src-tauri/src/
-├── lib.rs              # Commands with #[specta::specta]
-├── bindings.rs         # Command registration + export test
-└── Cargo.toml          # specta, tauri-specta dependencies
+src-tauri/
+├── Cargo.toml          # specta, tauri-specta dependencies
+└── src/
+    ├── lib.rs          # App setup and startup
+    ├── commands/       # Command handlers with #[specta::specta]
+    └── bindings.rs     # Command registration + export test
 
 src/lib/
 ├── bindings.ts         # Generated (DO NOT EDIT)
@@ -197,7 +200,7 @@ await commands.saveEmergencyData(filename, data as JsonValue)
 TypeScript bindings are generated when the app runs in debug mode, or via:
 
 ```bash
-npm run rust:bindings
+pnpm run rust:bindings
 ```
 
 This must be run after changing Rust commands.
@@ -223,13 +226,12 @@ vi.mock('@/lib/tauri-bindings', () => ({
 
 | Command                   | Parameters                            | Returns                          | Description         |
 | ------------------------- | ------------------------------------- | -------------------------------- | ------------------- |
-| `greet`                   | `name: string`                        | `string`                         | Simple greeting     |
 | `loadPreferences`         | none                                  | `Result<AppPreferences, string>` | Load preferences    |
 | `savePreferences`         | `preferences: AppPreferences`         | `Result<null, string>`           | Save preferences    |
 | `sendNativeNotification`  | `title: string, body: string \| null` | `Result<null, string>`           | System notification |
-| `saveEmergencyData`       | `filename: string, data: JsonValue`   | `Result<null, string>`           | Save recovery data  |
-| `loadEmergencyData`       | `filename: string`                    | `Result<JsonValue, string>`      | Load recovery data  |
-| `cleanupOldRecoveryFiles` | none                                  | `Result<number, string>`         | Cleanup old files   |
+| `saveEmergencyData`       | `filename: string, data: JsonValue`   | `Result<null, RecoveryError>`           | Save recovery data  |
+| `loadEmergencyData`       | `filename: string`                    | `Result<JsonValue, RecoveryError>`      | Load recovery data  |
+| `cleanupOldRecoveryFiles` | none                                  | `Result<number, RecoveryError>`         | Cleanup old files   |
 
 ## Dependencies
 

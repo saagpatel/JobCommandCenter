@@ -61,7 +61,7 @@ pnpm run ast:fix     # Auto-fix where possible
 **Key rules:**
 
 - No Zustand destructuring (causes render cascades)
-- Hooks must be in `hooks/` directory
+- Exported hooks must be in `hooks/` or `services/`, not `lib/`
 - No store subscriptions in `lib/`
 
 See [writing-ast-grep-rules.md](./writing-ast-grep-rules.md) for creating new rules.

@@ -81,14 +81,9 @@ function SaveButton() {
 
 ### Command Palette Integration
 
-The notification system includes test commands accessible via the command palette (Cmd+K):
+The notification system includes one test command accessible via the command palette (Cmd+K):
 
-- **Test Success Toast** - Show success toast
-- **Test Error Toast** - Show error toast
-- **Test Info Toast** - Show info toast
-- **Test Warning Toast** - Show warning toast
-- **Test Native Success Notification** - Show native notification
-- **Test Native Info Notification** - Show native notification with details
+- **Test Toast** - Show a success toast (`notification.test-toast`)
 
 ### Advanced Usage
 
@@ -104,12 +99,8 @@ notify('Important', 'This requires manual dismissal', {
 })
 
 // Native notification with fallback
-try {
-  await notify('System Alert', 'Check this out', { native: true })
-} catch (error) {
-  // Automatically falls back to toast notification
-  console.log('Native notification failed, showed toast instead')
-}
+// notify handles failures internally and falls back to a toast.
+await notify('System Alert', 'Check this out', { native: true })
 ```
 
 ## Implementation Details
@@ -119,7 +110,7 @@ try {
 - **Location**: `src/lib/notifications.ts`
 - **Dependencies**: Sonner for toasts, Tauri API for native notifications
 - **Error handling**: Automatic fallback from native to toast
-- **Logging**: All notification actions are logged via logger utility
+- **Logging**: The logger utility emits notification logs in development
 
 ### Backend (Rust)
 
@@ -144,7 +135,7 @@ Native notifications require the `notification:default` permission in `src-tauri
 2. **Keep messages concise**: Short titles and clear messages work best
 3. **Use appropriate types**: Match notification type to the action result
 4. **Handle errors**: The system includes automatic fallback handling
-5. **Test both modes**: Use the command palette test commands to verify functionality
+5. **Test both modes**: The command palette tests a success toast; native mode requires a separate `notify` call
 
 ## Troubleshooting
 
@@ -163,8 +154,8 @@ Native notifications require the `notification:default` permission in `src-tauri
 
 ### Command Palette Tests
 
-Use the built-in test commands to verify both toast and native notifications are working correctly:
+Use the built-in Test Toast command to verify success toasts:
 
 1. Open command palette (Cmd+K)
 2. Search for "notification" or "toast"
-3. Run test commands to verify functionality
+3. Run Test Toast to verify functionality

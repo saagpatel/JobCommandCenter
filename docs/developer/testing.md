@@ -87,7 +87,6 @@ vi.mock('@tauri-apps/plugin-updater', () => ({
 // Mock typed Tauri bindings (tauri-specta generated)
 vi.mock('@/lib/tauri-bindings', () => ({
   commands: {
-    greet: vi.fn().mockResolvedValue('Hello, test!'),
     loadPreferences: vi
       .fn()
       .mockResolvedValue({ status: 'ok', data: { theme: 'system' } }),
@@ -115,7 +114,12 @@ const mockCommands = vi.mocked(commands)
 test('loads preferences', async () => {
   mockCommands.loadPreferences.mockResolvedValue({
     status: 'ok',
-    data: { theme: 'dark' },
+    data: {
+      theme: 'dark',
+      quick_pane_shortcut: null,
+      language: null,
+      applykit_public_key_id: null,
+    },
   })
 
   // Test code that calls loadPreferences
@@ -124,44 +128,15 @@ test('loads preferences', async () => {
 
 ### Test Wrapper for Providers
 
-Components using TanStack Query need a provider wrapper:
-
-```typescript
-// src/test/utils.ts
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactNode } from 'react'
-
-export function createTestQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  })
-}
-
-export function TestProviders({ children }: { children: ReactNode }) {
-  const queryClient = createTestQueryClient()
-  return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
-  )
-}
-```
+Components using TanStack Query can use the existing `render` helper in `src/test/test-utils.tsx`. It wraps the component in query, i18n, and theme providers with query/mutation retries disabled.
 
 Usage:
 
 ```typescript
-import { render } from '@testing-library/react'
-import { TestProviders } from '@/test/utils'
+import { render } from '@/test/test-utils'
 
 test('component with query', () => {
-  render(
-    <TestProviders>
-      <MyComponent />
-    </TestProviders>
-  )
+  render(<MyComponent />)
 })
 ```
 

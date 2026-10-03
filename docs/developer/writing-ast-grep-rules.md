@@ -42,13 +42,13 @@ note: |
 Test a pattern against the codebase:
 
 ```bash
-npx ast-grep run --pattern 'const { $$$PROPS } = useUIStore($$$ARGS)' src/
+pnpm exec ast-grep run --pattern 'const { $$$PROPS } = useUIStore($$$ARGS)' src/
 ```
 
 Test a rule file:
 
 ```bash
-npx ast-grep scan -r .ast-grep/rules/zustand/no-destructure.yml
+pnpm exec ast-grep scan -r .ast-grep/rules/zustand/no-destructure.yml
 ```
 
 ## Example: No Zustand Destructuring
@@ -113,7 +113,7 @@ rule:
 **Rules not matching:**
 
 1. Check `language` matches file type (`Tsx` for `.tsx`, `TypeScript` for `.ts`)
-2. Test pattern directly with `npx ast-grep run`
+2. Test pattern directly with `pnpm exec ast-grep run`
 3. Verify `files` globs if using path restrictions
 
 **False positives:**

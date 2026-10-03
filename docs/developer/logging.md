@@ -29,21 +29,23 @@ logger.error('Request failed', { error: response.error })
 ### Rust Backend
 
 - Uses `tauri-plugin-log` with standard Rust `log` crate
-- **Development**: Debug level, logs to stdout + webview console
-- **Production**: Info level, logs to stdout + app log directory
+- **Development**: Debug level, logs to stdout + webview console + app log directory (macOS only)
+- **Production**: Info level, logs to stdout + webview console + app log directory (macOS only)
 - Configuration in `src-tauri/src/lib.rs`
 
 ### TypeScript Frontend
 
 - **Development**: All logs go to browser console
-- **Production**: Console logging only (keeps it simple)
+- **Production**: This logger utility emits no logs
 - Logger utility at `src/lib/logger.ts`
 
 ## Log Levels
 
+The table shows Rust levels. The frontend logger emits all levels only in development.
+
 | Level   | When to Use            | Dev | Prod |
 | ------- | ---------------------- | --- | ---- |
-| `trace` | Most verbose debugging | ✅  | ❌   |
+| `trace` | Most verbose debugging | ❌  | ❌   |
 | `debug` | Development debugging  | ✅  | ❌   |
 | `info`  | General information    | ✅  | ✅   |
 | `warn`  | Warning conditions     | ✅  | ✅   |
@@ -53,13 +55,13 @@ logger.error('Request failed', { error: response.error })
 
 ### Development
 
-- **Rust**: Terminal (stdout) + Browser DevTools console (webview)
+- **Rust**: Terminal (stdout) + Browser DevTools console (webview) + app log directory (macOS only)
 - **TypeScript**: Browser DevTools console
 
 ### Production
 
-- **Rust**: Terminal (stdout) + log file in app log directory
-- **TypeScript**: Browser DevTools console
+- **Rust**: Terminal (stdout) + Browser DevTools console (webview) + app log directory (macOS only)
+- **TypeScript**: No output from `src/lib/logger.ts`
 
 Log directory locations vary by platform (e.g., `~/Library/Logs/` on macOS).
 
@@ -118,7 +120,7 @@ See [error-handling.md](./error-handling.md) for patterns on when to log vs show
 
 ## Production Considerations
 
-- Rust logs go to the app's log directory (platform-specific location)
+- Rust logs also go to the app's log directory on macOS
 - No sensitive data should be logged (passwords, tokens, etc.)
 - The plugin supports log rotation when files reach size limits
-- Frontend logs stay in browser - not sent to backend by default
+- Frontend logs are disabled in production; backend forwarding is not implemented
